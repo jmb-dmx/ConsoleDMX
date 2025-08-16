@@ -1359,7 +1359,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             nm.replace("|", " ");
             nm.replace(",", " ");
             nm.replace(":", " ");
-            cfg.dmx_protocol = (uint8_t)constrain(proto, 0, 3);
+            cfg.dmx_protocol = (uint8_t)constrain(proto, 0, 2);
             cfg.universe = (uint8_t)constrain(unv, 0, 255);
             cfg.priority = (uint8_t)constrain(pr, 0, 2);
             strncpy(cfg.nodeName, nm.c_str(), sizeof(cfg.nodeName) - 1);
