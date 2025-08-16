@@ -167,7 +167,7 @@ void setDefaults(Config& c) {
   c.ap_only = 0;
   c.use_static_ip = 0;
   strncpy(c.nodeName, "ConsoleDMX", sizeof(c.nodeName) - 1);
-  c.dmx_protocol = 1;
+  c.dmx_protocol = 0;
   c.espnow_mode = 0;
   c.espnow_channel = 1;
   c.espnow_intensity_only = 0;
