@@ -1,0 +1,2236 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ConsoleDMX</title>
+<style>
+ :root {
+  color-scheme: light dark;
+  --bg-color: #121212; --text-color: #e0e0e0; --header-bg: #1f1f1f;
+  --header-border: #2c2c2c; --tab-bg: #2a2a2a; --tab-border: #3a3a3a;
+  --tab-text: #ddd; --tab-active-bg: #09c; --tab-active-border: #09c;
+  --tab-active-text: #fff; --fader-bg: #262626; --fader-shadow: rgba(0,0,0,.25);
+  --btn-bg: #2a2a2a; --btn-border: #3a3a3a; --btn-text: #eaeaea;
+  --input-bg: #1d1d1d; --input-border: #3a3a3a; --input-text: #eaeaea;
+  --fieldset-border: #2c2c2c; --legend-text: #aaa;
+  --link-color: #09c; --toast-bg: #2b2b2b; --toast-text: #fff; --toast-border: #3a3a3a;
+  --select-bg: #333; --select-border: #444;
+  --hr-bg: linear-gradient(90deg,transparent,#2a2a2a,transparent);
+  --danger-color: #c0392b; --primary-color: #007bff; --rec-color: #e67e22; --clear-color: #8e44ad;
+}
+.light-theme {
+  --bg-color: #f0f0f0; --text-color: #333; --header-bg: #fff;
+  --header-border: #ddd; --tab-bg: #e9e9e9; --tab-border: #ccc;
+  --tab-text: #555; --tab-active-bg: #007bff; --tab-active-border: #007bff;
+  --tab-active-text: #fff; --fader-bg: #fff; --fader-shadow: rgba(0,0,0,.1);
+  --btn-bg: #e9e9e9; --btn-border: #ccc; --btn-text: #333;
+  --input-bg: #fff; --input-border: #ccc; --input-text: #333;
+  --fieldset-border: #ddd; --legend-text: #555;
+  --link-color: #007bff; --toast-bg: #333; --toast-text: #fff; --toast-border: #444;
+  --select-bg: #f5f5f5; --select-border: #ccc;
+  --hr-bg: linear-gradient(90deg,transparent,#ccc,transparent);
+}
+ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg-color);color:var(--text-color);margin:0}
+ header{padding:10px 12px;background:var(--header-bg);border-bottom:1px solid var(--header-border);display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;}
+ .header-left, .header-right { display:flex; align-items:center; gap:10px; }
+ .header-right { justify-content:flex-end; }
+ .title{font-size:16px;color:var(--link-color);font-weight:700;margin-right:6px}
+ .tabs{display:flex;gap:8px}
+ .tabbtn{background:var(--tab-bg);border:1px solid var(--tab-border);color:var(--tab-text);padding:6px 10px;border-radius:8px;cursor:pointer}
+ .tabbtn.active{background:var(--tab-active-bg);border-color:var(--tab-active-border);color:var(--tab-active-text)}
+ .center{display:flex; justify-content:center}
+ .blackout-btn{
+   padding:10px 18px; font-size:16px; font-weight:800; letter-spacing:.5px;
+   border-radius:999px; cursor:pointer;
+   transition:transform .04s, filter .15s, background .2s, border-color .2s, color .2s;
+   background:transparent; border:1px solid var(--danger-color); color:var(--danger-color);
+ }
+ .blackout-btn:active{ transform:translateY(1px) }
+ .blackout-btn.active{ background:var(--danger-color); border-color:var(--danger-color); color:#fff; box-shadow:0 2px 10px rgba(192,57,43,.35) }
+ .spacer{flex:0 0 auto}
+ .header-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+ .btn{padding:8px 12px;font-size:14px;border-radius:8px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--btn-text);cursor:pointer;transition:filter .15s,transform .02s}
+ .btn:active{transform:translateY(1px)}
+ .btn.primary{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
+ .btn.danger{background:var(--danger-color);border-color:var(--danger-color);color:#fff}
+ .btn.active{background:var(--tab-active-bg);border-color:var(--tab-active-border);color:#fff}
+ .btn.armed{outline:2px solid #ffd166; box-shadow:0 0 0 2px rgba(255,209,102,.2) inset}
+ .gear{background:var(--btn-bg);border:1px solid var(--btn-border);color:var(--btn-text);border-radius:8px;padding:8px 12px;cursor:pointer}
+ main{padding:16px}
+ .page{display:none}.page.active{display:block}
+ .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+ .fader{background:var(--fader-bg-color, var(--fader-bg));border-radius:12px;padding:10px;width:64px;display:flex;flex-direction:column;align-items:center;box-shadow:0 2px 6px var(--fader-shadow);margin-bottom:6px;position:relative}
+ .fader-color-picker-wrapper{position:absolute;top:4px;right:4px}
+ .fader-color-picker{-webkit-appearance:none;-moz-appearance:none;appearance:none;width:16px;height:16px;background-color:transparent;border:none;cursor:pointer}
+ .fader-color-picker::-webkit-color-swatch{border-radius:50%;border:1px solid var(--input-border)}
+ .fader-color-picker::-moz-color-swatch{border-radius:50%;border:1px solid var(--input-border)}
+ .fader .hdr{height:46px;display:flex;flex-direction:column;align-items:center;margin-bottom:8px}
+ .fader label{font-weight:700;font-size:.9em}
+ .fader .val{font-family:ui-monospace,Menlo,monospace;color:var(--link-color);margin-top:4px}
+ input[type="range"].v{-webkit-appearance:slider-vertical;writing-mode:vertical-lr;direction:rtl;width:22px;height:210px;cursor:pointer}
+ .ha-select-wrap{ margin-top:6px; }
+ .ha-select-wrap select { font-size:11px; max-width:62px; padding:2px; background:var(--select-bg); border-color:var(--select-border); }
+ .row-separator { margin-top:20px; }
+ .row-separator::before { content:""; width:100%; height:1px; background:var(--hr-bg); margin-bottom:12px; display:block; }
+ .scenebar{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:22px;margin-bottom:10px}
+ .btn.rec{background:var(--rec-color);border-color:var(--rec-color);color:#fff}
+ .btn.clear{background:var(--clear-color);border-color:var(--clear-color);color:#fff}
+ #slots{display:inline-flex;gap:10px;flex-wrap:wrap}
+ .slotbtn{min-width:50px;padding:10px 16px;font-size:15px;font-weight:600;border-radius:10px;line-height:1}
+ @media(min-width:900px){ .slotbtn{min-width:56px;padding:12px 18px;font-size:16px} #slots{gap:12px} }
+ .slotbtn.slot-empty{ color:#8a8a8a; border-color:var(--btn-border); }
+ .slotbtn.slot-full{ color:#2ecc71; border-color:#2ecc71; }
+ .slotbtn.slot-editing{ color:var(--rec-color); border-color:var(--rec-color); }
+ fieldset{border:1px solid var(--fieldset-border);border-radius:10px;padding:12px}
+ legend{padding:0 6px;color:var(--legend-text)}
+ label.inline{display:inline-block;min-width:180px}
+ input,select{background:var(--input-bg);color:var(--input-text);border:1px solid var(--input-border);border-radius:6px;padding:8px}
+ .grid{display:grid;gap:12px}.grid2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+ .danger-outline{background:transparent;border-color:var(--danger-color);color:var(--danger-color)}
+ footer{opacity:.6;text-align:center;padding:12px}
+ #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-text);padding:10px 14px;border-radius:10px;border:1px solid var(--toast-border);box-shadow:0 6px 20px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:9999}
+ #toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+ @media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 14px;
+    padding: 12px;
+  }
+  .header-left, .header-right {
+    width: 100%;
+    justify-content: center;
+    gap: 12px;
+  }
+  .header-left {
+    order: 1; /* Push tabs below page buttons */
+  }
+
+  .row {
+    gap: 16px;
+  }
+  .fader {
+    flex-direction: row;
+    width: 90vw;
+    max-width: 450px;
+    padding: 8px 14px;
+    align-items: center;
+    gap: 12px;
+  }
+  .fader .hdr {
+    flex: 0 0 50px; /* Do not grow, do not shrink, basis 50px */
+    flex-direction: column;
+    height: auto;
+    margin-bottom: 0;
+    text-align: center;
+  }
+  .fader .hdr label { font-size: .8em; }
+  .fader .hdr .val { margin-top: 2px; font-size: .9em; }
+
+  input[type="range"].v {
+    -webkit-appearance: none;
+    appearance: none;
+    writing-mode: horizontal-tb;
+    width: 100%;
+    height: 24px; /* Container height */
+    background: transparent;
+  }
+  input[type="range"].v::-webkit-slider-runnable-track {
+    height: 6px;
+    background: #444;
+    border-radius: 3px;
+  }
+  input[type="range"].v::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #09c;
+    cursor: pointer;
+    margin-top: -9px; /* (track_height - thumb_height) / 2 */
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr; /* Stack into a single column on mobile */
+  }
+  label.inline {
+    min-width: 100px; /* Allow label to be smaller */
+  }
+  .chaser-scenes div {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chaser-scenes input {
+    padding: 8px;
+    max-width: 100px;
+  }
+ }
+ .chaser-step.active {
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  padding: 4px;
+  background-color: rgba(0, 123, 255, 0.1);
+ }
+ #robo-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+ }
+ #xy-pad-wrapper {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+ }
+ #xyCanvas {
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  cursor: crosshair;
+  background-color: var(--input-bg);
+ }
+ #robo-controls {
+  width: 200px;
+  min-width: 200px;
+ }
+ #robo-controls .grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+ }
+ #main-fader-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+ }
+ #faders-column {
+  flex: 1;
+  min-width: 500px;
+ }
+ .fader-xy-assign {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 8px 0;
+  box-sizing: border-box;
+ }
+ .xy-assign-btn {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: .8em;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--legend-text);
+  padding: 2px;
+  border-radius: 4px;
+  transition: color .2s, background-color .2s;
+ }
+ .xy-assign-btn:hover {
+  background-color: var(--input-border);
+ }
+ .xy-assign-btn.assigned {
+  color: #2ecc71;
+  font-weight: 900;
+ }
+ .xy-assign-btn.assigned-inverted {
+  color: #e67e22; /* Orange */
+  font-weight: 900;
+ }
+ .xy-assign-btn.b-btn.active {
+  color: var(--danger-color);
+ }
+ #robo-column {
+  width: 220px;
+  flex-shrink: 0;
+ }
+ @media (max-width: 1024px) {
+  #main-fader-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+  #faders-column {
+    min-width: 100%;
+  }
+ }
+</style></head><body>
+<header>
+  <div class="header-left">
+    <div class="title">ConsoleDMX</div>
+    <div class="tabs">
+      <button class="tabbtn active" onclick="showTab('faders',this)" data-i18n-key="faders">Faders</button>
+      <button class="tabbtn" onclick="showTab('scenes',this)" data-i18n-key="scenes">Scènes</button>
+    </div>
+  </div>
+  <div class="center">
+    <button id="blackoutBtn" class="blackout-btn" onclick="toggleBlackout()">BLACKOUT</button>
+  </div>
+  <div class="header-right">
+    <div class="header-controls" id="fader-page-controls">
+      <!-- Page buttons are generated by JS -->
+    </div>
+  </div>
+</header>
+<main>
+  <section id="faders" class="page active">
+    <div id="main-fader-layout">
+      <div id="faders-column">
+        <!-- Fader pages will be generated here by buildUI() -->
+        <div class="scenebar">
+          <button id="recBtn" class="btn rec" onclick="armRec()" data-i18n-key="rec">REC</button>
+          <button id="clrBtn" class="btn clear" data-i18n-key="clear">CLEAR</button>
+          <span style="opacity:.7;align-self:center;" data-i18n-key="scene_label">Scène:</span>
+          <span id="slots"></span>
+        </div>
+      </div>
+      <div id="robo-column">
+        <div id="robo-container">
+          <div id="xy-pad-wrapper">
+            <canvas id="xyCanvas" width="200" height="200"></canvas>
+          </div>
+          <div id="robo-controls">
+            <fieldset>
+              <legend data-i18n-key="robo_movement">Mouvement Automatisé</legend>
+              <div class="grid">
+                <label for="xy-shape" data-i18n-key="robo_shape">Forme</label>
+                <select id="xy-shape">
+                  <option value="circle" data-i18n-key="robo_shape_circle">Cercle</option>
+                  <option value="figure8" data-i18n-key="robo_shape_figure8">Huit</option>
+                  <option value="lineH" data-i18n-key="robo_shape_lineh">Ligne Horizontale</option>
+                  <option value="lineV" data-i18n-key="robo_shape_linev">Ligne Verticale</option>
+                </select>
+                <label for="xy-speed" data-i18n-key="robo_speed">Vitesse</label>
+                <input type="range" id="xy-speed" min="0" max="255" value="1" style="flex-grow: 1;">
+                <label for="xy-size" data-i18n-key="robo_size">Taille</label>
+                <input type="range" id="xy-size" min="1" max="100" value="50">
+                <label for="xy-offset-x" data-i18n-key="robo_offset_x">Décalage X</label>
+                <input type="range" id="xy-offset-x" min="-100" max="100" value="0">
+                <label for="xy-offset-y" data-i18n-key="robo_offset_y">Décalage Y</label>
+                <input type="range" id="xy-offset-y" min="-100" max="100" value="0">
+              </div>
+               <div style="text-align: center; margin-top: 15px; display: flex; justify-content: center; gap: 10px;">
+                 <button id="xy-start-stop" class="btn" data-i18n-key="robo_start">Démarrer</button>
+                 <button id="xy-center-btn" class="btn" data-i18n-key="robo_center">Centrer</button>
+               </div>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="scenes" class="page">
+    <fieldset><legend data-i18n-key="scenes">Scènes</legend>
+      <div class="row" id="scenerow"></div>
+    </fieldset>
+    <hr style="width: 80%; border-color: var(--fieldset-border); margin: 25px auto;">
+    <fieldset style="margin-bottom: 20px;">
+      <legend data-i18n-key="chaser_control">Chaser Control</legend>
+      <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="display:flex; gap: 20px; align-items: center;">
+          <button id="chaserToggleBtn" class="btn" style="min-width: 120px;" data-i18n-key="chaser_start">Start</button>
+          <div id="chaserStatus" style="font-weight: 700;"><span data-i18n-key="chaser_status_label">Status:</span> <span style="color: #c0392b;" data-i18n-key="chaser_status_stopped">Stopped</span></div>
+        </div>
+        <div id="chaser-presets-container" style="display:flex; gap: 10px; align-items: center;">
+            <strong data-i18n-key="chaser_presets_label" style="font-size: .9em;">Presets:</strong>
+            <button class="btn slotbtn chaser-preset-btn" onclick="loadChaserPreset(0)">1</button>
+            <button class="btn slotbtn chaser-preset-btn" onclick="loadChaserPreset(1)">2</button>
+            <button class="btn slotbtn chaser-preset-btn" onclick="loadChaserPreset(2)">3</button>
+            <button class="btn slotbtn chaser-preset-btn" onclick="loadChaserPreset(3)">4</button>
+            <button id="chaserRecBtn" class="btn rec" onclick="armChaserRec()">REC</button>
+        </div>
+      </div>
+    </fieldset>
+    <fieldset style="margin-bottom: 20px;">
+      <legend data-i18n-key="chaser_parameters">Chaser Parameters</legend>
+      <div class="grid grid2">
+        <div><label class="inline" data-i18n-key="chaser_bpm">BPM</label><input type="number" id="chaserBPM" value="120" min="10" max="300" onchange="onBPMChange()"></div>
+        <div><label class="inline" data-i18n-key="chaser_fade_ms">Fade (ms)</label><input type="number" id="chaserFade" value="0" min="0" max="10000" step="50" onchange="sendChaserParams()"></div>
+        <div><label class="inline" data-i18n-key="chaser_step_duration">Step Duration (ms)</label><input type="number" id="chaserDuration" value="500" min="0" max="60000" step="100" onchange="sendChaserParams()"></div>
+        <small style="grid-column:1/-1; opacity: .7; margin-top: 4px;" data-i18n-key="chaser_duration_note">Set Duration to 0 to follow BPM speed.</small>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend data-i18n-key="chaser_sequence">Chaser Scene Sequence</legend>
+      <div class="row chaser-scenes" style="gap: 20px; justify-content: center;">
+        <!-- Chaser steps are generated by buildChaserUI() in JS -->
+      </div>
+    </fieldset>
+  </section>
+  <section id="settings" class="page">
+    <!-- Section 1: Affichage -->
+    <fieldset style="margin-bottom: 20px;">
+      <legend data-i18n-key="display_settings">Affichage</legend>
+      <div class="grid grid2">
+        <div>
+          <label class="inline" data-i18n-key="select_language">Sélectionner la langue</label>
+          <select id="langSelector" onchange="handleLangChange(this.value)">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div>
+          <label class="inline" data-i18n-key="select_theme">Thème</label>
+          <select id="themeSelector" onchange="handleThemeChange(this.value)">
+            <option value="dark" data-i18n-key="theme_dark">Sombre</option>
+            <option value="light" data-i18n-key="theme_light">Clair</option>
+          </select>
+        </div>
+        <div style="margin-top: 10px;">
+          <label class="inline" data-i18n-key="reset_fader_customs">Noms & Couleurs Faders</label>
+          <button class="btn danger-outline" onclick="resetFaderCustoms()" data-i18n-key="reset_fader_customs_btn">Réinitialiser</button>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Section 2: Réseau -->
+    <fieldset style="margin-bottom: 20px;">
+      <legend data-i18n-key="network_settings">Réseau</legend>
+      <form method="POST" action="/wifi" style="margin-top:0; margin-bottom: 20px;" onsubmit="applyProtocolSettings(); applyEspnowSettings();">
+        <fieldset class="grid grid2"><legend data-i18n-key="wifi_network">Réseau Wi-Fi</legend>
+          <div><label class="inline" data-i18n-key="ssid">SSID</label><input name="ssid" id="wssid" maxlength="31"></div>
+          <div><label class="inline" data-i18n-key="password">Mot de passe</label><input name="pass" id="wpass" maxlength="63"></div>
+          <div><label class="inline" data-i18n-key="ap_only_mode">Mode AP-only</label><select name="aponly" id="aponly"><option value="0" data-i18n-key="ap_no">Non (STA si possible)</option><option value="1" data-i18n-key="ap_yes">Oui (forcer AP)</option></select></div>
+
+          <hr style="grid-column: 1 / -1; border-color: var(--fieldset-border); margin: 6px 0;">
+
+          <div>
+            <label class="inline" data-i18n-key="use_static_ip">Utiliser une IP Statique</label>
+            <input type="checkbox" id="use_static_ip" name="use_static_ip" value="1" onchange="toggleStaticFields()" style="width:20px;height:20px;vertical-align:middle;">
+          </div>
+          <div id="static_ip_fields" style="display:none; grid-column:1/-1; margin-top:10px;" class="grid grid2">
+            <div><label class="inline" data-i18n-key="static_ip">Adresse IP</label><input name="static_ip" id="static_ip" maxlength="15"></div>
+            <div><label class="inline" data-i18n-key="static_subnet">Sous-réseau</label><input name="static_subnet" id="static_subnet" maxlength="15"></div>
+            <div><label class="inline" data-i18n-key="static_gateway">Passerelle</label><input name="static_gateway" id="static_gateway" maxlength="15"></div>
+          </div>
+
+          <div style="grid-column:1/-1; margin-top:16px;"><button class="btn primary" type="submit" data-i18n-key="save_and_restart">Enregistrer & Redémarrer</button></div>
+        </fieldset>
+      </form>
+      <fieldset class="grid grid2"><legend data-i18n-key="espnow_mode">ESP-NOW</legend>
+        <div><label class="inline" data-i18n-key="espnow_mode">Mode</label><select id="espnowMode"><option value="0" data-i18n-key="espnow_off">Désactivé</option><option value="1" data-i18n-key="espnow_master">Maître (Émetteur)</option><option value="2" data-i18n-key="espnow_slave">Esclave (Récepteur)</option></select></div>
+        <div><label class="inline" data-i18n-key="espnow_channel">Canal (0=auto)</label><input type="number" id="espnowChannel" min="0" max="14" value="1"></div>
+        <div style="grid-column: 1 / -1;"><label class="inline" data-i18n-key="espnow_intensity_only">Intensité seulement</label><input type="checkbox" id="espnowIntensityOnly" style="width:20px;height:20px;vertical-align:middle;"></div>
+      </fieldset>
+    </fieldset>
+
+    <!-- Section 3: Protocoles DMX -->
+    <fieldset style="margin-bottom: 20px;">
+      <legend data-i18n-key="dmx_protocols">Protocoles DMX</legend>
+      <fieldset class="grid grid2" style="margin-bottom: 20px;"><legend data-i18n-key="net_dmx_settings">DMX sur IP (Art-Net/sACN)</legend>
+        <div>
+          <label class="inline" data-i18n-key="protocol">Protocole</label>
+          <select id="dmxProtocol" onchange="updateProtocolUI()">
+            <option value="0" data-i18n-key="disabled">Désactivé</option>
+            <option value="1" data-i18n-key="artnet">Art-Net</option>
+            <option value="2" data-i18n-key="sacn">sACN (E1.31)</option>
+            <option value="3" data-i18n-key="usbdmx">USB DMX (OpenDMX)</option>
+          </select>
+        </div>
+        <div><label class="inline" data-i18n-key="universe">Univers</label><input type="number" id="univ" min="0" max="255"></div>
+        <div><label class="inline" data-i18n-key="priority">Priorité</label><select id="prio"><option value="0" data-i18n-key="prio_faders">Faders</option><option value="1" data-i18n-key="prio_net">DMX sur IP</option><option value="2" data-i18n-key="prio_htp">Fusion HTP (max)</option></select></div>
+        <div id="artnetNodeNameRow"><label class="inline" data-i18n-key="node_name">Nom du node Art-Net</label><input type="text" id="nodeName" maxlength="31" data-i18n-placeholder-key="node_name_placeholder" placeholder="ConsoleDMX"></div>
+        <hr style="grid-column: 1 / -1; border-color: var(--fieldset-border); margin: 10px 0 6px;">
+        <div><label class="inline" style="font-weight:700;" data-i18n-key="led_strip_output">Sortie LED Strip (Art-Net)</label><select id="ledArtEnable"><option value="1" data-i18n-key="enabled">Activé</option><option value="0" data-i18n-key="disabled">Désactivé</option></select></div>
+        <div><label class="inline" data-i18n-key="led_strip_universe">Univers Art-Net (LEDs)</label><input type="number" id="ledUniv" min="0" max="255"></div>
+        <div>
+          <label class="inline" data-i18n-key="led_color_order">Ordre des couleurs (LEDs)</label>
+          <select id="ledColorOrder">
+            <option value="0" data-i18n-key="led_order_grb">GRB</option>
+            <option value="1" data-i18n-key="led_order_rgb">RGB</option>
+            <option value="2" data-i18n-key="led_order_bgr">BGR</option>
+          </select>
+        </div>
+        <small style="opacity:.7;grid-column:1/-1" data-i18n-key="net_dmx_restart_note">Changer de protocole provoque un redémarrage. Tous les réglages réseau sont sauvegardés avec le bouton "Enregistrer & Redémarrer" de la section Wi-Fi.</small>
+      </fieldset>
+      <fieldset class="grid grid2"><legend data-i18n-key="ha_integration">Home Assistant</legend>
+        <div><label class="inline" data-i18n-key="enable_ha">Activer Home Assistant</label><input type="checkbox" id="haEnabled" onchange="toggleHASettings()"></div>
+        <div id="haConfigFields" style="display:none; grid-column:1/-1; margin-top:10px;" class="grid grid2">
+          <div><label class="inline" data-i18n-key="ha_url">URL Home Assistant</label><input type="text" id="haUrl" placeholder="http://homeassistant.local:8123"></div>
+          <div><label class="inline" data-i18n-key="ha_token">Token longue durée</label><input type="password" id="haToken"></div>
+          <div style="grid-column:1/-1"><button class="btn primary" onclick="saveHASettings()" data-i18n-key="ha_save_and_search">Enregistrer & Chercher les lumières</button></div>
+        </div>
+      </fieldset>
+    </fieldset>
+
+    <!-- Section 4: Zone de Danger -->
+    <div style="margin-top:24px">
+      <fieldset><legend data-i18n-key="danger_zone">Zone de Danger</legend>
+        <div class="grid grid2" style="gap: 12px 20px;">
+          <p style="margin:0;opacity:.9; grid-column: 1 / -1;" data-i18n-key="danger_zone_note">Efface la configuration réseau, les scènes et les niveaux.</p>
+          <form method="POST" action="/factory" data-i18n-confirm-key="factory_reset_confirm" onsubmit="return confirm('CONFIRMER LA REMISE D\'USINE ? Cette action est irréversible.');">
+            <button class="btn danger-outline" type="submit" data-i18n-key="factory_reset">Remise d’usine</button>
+          </form>
+          <p style="margin:0;opacity:.9; grid-column: 1 / -1;" data-i18n-key="reboot_note">Redémarre l'appareil.</p>
+          <button class="btn danger-outline" onclick="rebootDevice()" data-i18n-key="reboot_button">Reboot</button>
+        </div>
+      </fieldset>
+    </div>
+    <p style="margin-top:24px"><span data-i18n-key="current_ip">IP actuelle:</span> <span id="curip"></span></p>
+  </section>
+</main>
+<div id="toast"></div>
+<footer>ConsoleDMX • J-Michel Blouin • © 2025</footer>
+<script>
+let currentLanguage = 'fr';
+let currentTheme = 'dark';
+
+const translations = {
+  fr: {
+    // Tabs & Header
+    faders: "Faders",
+    scenes: "Scènes",
+    chaser: "Chaser",
+    settings_title: "Réglages",
+    page: "Page",
+    // Fader page
+    rec: "REC",
+    clear: "CLEAR",
+    scene_label: "Scène:",
+    // Settings page
+    led_color_order: "Ordre des couleurs (LEDs)",
+    led_order_grb: "GRB",
+    led_order_rgb: "RGB",
+    led_order_bgr: "BGR",
+    display_settings: "Affichage",
+    network_settings: "Réseau",
+    dmx_protocols: "Protocoles DMX",
+    net_dmx_settings: "DMX sur IP (Art-Net/sACN)",
+    protocol: "Protocole",
+    universe: "Univers",
+    priority: "Priorité",
+    node_name: "Nom du node Art-Net",
+    led_strip_output: "Sortie LED Strip (Art-Net)",
+    led_strip_universe: "Univers Art-Net (LEDs)",
+    apply_net_dmx_settings: "Appliquer les réglages",
+    net_dmx_restart_note: "Changer de protocole provoque un redémarrage automatique.",
+    wifi_network: "Réseau Wi-Fi",
+    ssid: "SSID",
+    password: "Mot de passe",
+    ap_only_mode: "Mode AP-only",
+    save_and_restart: "Enregistrer & Redémarrer",
+    use_static_ip: "Utiliser une IP Statique",
+    static_ip: "Adresse IP",
+    static_subnet: "Sous-réseau",
+    static_gateway: "Passerelle",
+    espnow_mode: "Mode ESP-NOW",
+    espnow_channel: "Canal (0=auto)",
+    espnow_intensity_only: "Intensité seulement",
+    apply_and_restart: "Appliquer & Redémarrer",
+    ha_integration: "Home Assistant",
+    enable_ha: "Activer Home Assistant",
+    ha_url: "URL Home Assistant",
+    ha_token: "Token longue durée",
+    ha_save_and_search: "Enregistrer & Chercher les lumières",
+    danger_zone: "Zone de Danger",
+    danger_zone_note: "Efface la configuration réseau, les scènes et les niveaux.",
+    factory_reset: "Remise d’usine",
+    reboot_note: "Redémarre l'appareil.",
+    reboot_button: "Reboot",
+    current_ip: "IP actuelle:",
+    // Select options
+    enabled: "Activé",
+    disabled: "Désactivé",
+    artnet: "Art-Net",
+    sacn: "sACN (E1.31)",
+    usbdmx: "USB DMX (type OpenDMX)",
+    prio_faders: "Faders",
+    prio_net: "DMX sur IP",
+    prio_htp: "Fusion HTP (max)",
+    ap_no: "Non (STA si possible)",
+    ap_yes: "Oui (forcer AP)",
+    espnow_off: "Désactivé",
+    espnow_master: "Maître (Émetteur)",
+    espnow_slave: "Esclave (Récepteur)",
+    theme_dark: "Sombre",
+    theme_light: "Clair",
+    // Chaser page
+    chaser_control: "Chaser Control",
+    chaser_start: "Start",
+    chaser_stop: "Stop",
+    chaser_status_label: "Status:",
+    chaser_status_running: "En marche",
+    chaser_status_stopped: "Arrêté",
+    chaser_parameters: "Chaser Parameters",
+    chaser_bpm: "BPM",
+    chaser_fade_ms: "Fade (ms)",
+    chaser_step_duration: "Step Duration (ms)",
+    chaser_duration_note: "Set Duration to 0 to follow BPM speed.",
+    chaser_sequence: "Chaser Scene Sequence",
+    step: "Étape",
+    chaser_step_off: "Off",
+    chaser_step_black: "Noir",
+    chaser_presets_label: "Presets:",
+    chaser_save_preset: "Sauvegarder",
+    // Robo page
+    robo: "Robo",
+    robo_dmx_assign: "Assignation Canaux DMX",
+    robo_ch_x: "Canal X",
+    robo_ch_y: "Canal Y",
+    robo_movement: "Mouvement Automatisé",
+    robo_shape: "Forme",
+    robo_shape_circle: "Cercle",
+    robo_shape_figure8: "Huit",
+    robo_shape_lineh: "Ligne Horizontale",
+    robo_shape_linev: "Ligne Verticale",
+    robo_speed: "Vitesse",
+    robo_size: "Taille",
+    robo_offset_x: "Décalage X",
+    robo_offset_y: "Décalage Y",
+    robo_start: "Démarrer",
+    robo_stop: "Arrêter",
+    robo_center: "Centrer",
+    // JS messages
+    scene_updated_faders_reset: "Scène modifiée, faders remis à 0",
+    confirm_clear_scene: "Effacer scène {n} ?",
+    dmx_channels_reset: "Canaux DMX remis à 0",
+    scenes_and_dmx_reset: "Scènes et canaux DMX remis à 0",
+    artnet_settings_applied: "Paramètres DMX sur IP appliqués. Redémarrage si le protocole a changé.",
+    espnow_settings_applied: "Réglage ESP-NOW appliqué. Redémarrage...",
+    ha_url_token_required: "URL et Token Home Assistant sont requis",
+    ha_found_lights: "Trouvé {n} lumières Home Assistant",
+    ha_connection_error: "Erreur connexion HA. ",
+    ha_check_url_cors: "Vérifiez l'URL et la config CORS de HA.",
+    ha_send_error: "Erreur envoi HA",
+    factory_reset_confirm: "CONFIRMER LA REMISE D'USINE ? Cette action est irréversible.",
+    reboot_confirm: "CONFIRMER LE REDÉMARRAGE ?",
+    language: "Langue",
+    select_language: "Sélectionner la langue",
+    select_theme: "Thème",
+    reset_fader_customs: "Noms & Couleurs Faders",
+    reset_fader_customs_btn: "Réinitialiser",
+    confirm_fader_reset: "Voulez-vous vraiment réinitialiser TOUS les noms et couleurs des faders ?",
+    faders_reset_success: "Noms et couleurs des faders réinitialisés.",
+  },
+  en: {
+    // Tabs & Header
+    faders: "Faders",
+    scenes: "Scenes",
+    chaser: "Chaser",
+    settings_title: "Settings",
+    page: "Page",
+    // Fader page
+    rec: "REC",
+    clear: "CLEAR",
+    scene_label: "Scene:",
+     // Settings page
+    led_color_order: "Color Order (LEDs)",
+    led_order_grb: "GRB",
+    led_order_rgb: "RGB",
+    led_order_bgr: "BGR",
+    display_settings: "Display",
+    network_settings: "Network",
+    dmx_protocols: "DMX Protocols",
+    net_dmx_settings: "DMX over IP (Art-Net/sACN)",
+    protocol: "Protocol",
+    universe: "Universe",
+    priority: "Priority",
+    node_name: "Art-Net Node Name",
+    led_strip_output: "LED Strip Output (Art-Net)",
+    led_strip_universe: "Art-Net Universe (LEDs)",
+    apply_net_dmx_settings: "Apply Settings",
+    net_dmx_restart_note: "Changing the protocol will cause an automatic restart.",
+    wifi_network: "Wi-Fi Network",
+    ssid: "SSID",
+    password: "Password",
+    ap_only_mode: "AP-only Mode",
+    save_and_restart: "Save & Restart",
+    use_static_ip: "Use Static IP",
+    static_ip: "IP Address",
+    static_subnet: "Subnet",
+    static_gateway: "Gateway",
+    espnow_mode: "ESP-NOW Mode",
+    espnow_channel: "Channel (0=auto)",
+    espnow_intensity_only: "Intensity only",
+    apply_and_restart: "Apply & Restart",
+    ha_integration: "Home Assistant",
+    enable_ha: "Enable Home Assistant",
+    ha_url: "Home Assistant URL",
+    ha_token: "Long-Lived Token",
+    ha_save_and_search: "Save & Discover Lights",
+    danger_zone: "Danger Zone",
+    danger_zone_note: "Erases network configuration, scenes, and levels.",
+    factory_reset: "Factory Reset",
+    reboot_note: "Restarts the device.",
+    reboot_button: "Reboot",
+    current_ip: "Current IP:",
+    // Select options
+    enabled: "Enabled",
+    disabled: "Disabled",
+    artnet: "Art-Net",
+    sacn: "sACN (E1.31)",
+    usbdmx: "USB DMX (OpenDMX type)",
+    prio_faders: "Faders",
+    prio_net: "DMX over IP",
+    prio_htp: "HTP Merge (max)",
+    ap_no: "No (STA if possible)",
+    ap_yes: "Yes (force AP)",
+    espnow_off: "Disabled",
+    espnow_master: "Master (Transmitter)",
+    espnow_slave: "Slave (Receiver)",
+    theme_dark: "Dark",
+    theme_light: "Light",
+    // Chaser page
+    chaser_control: "Chaser Control",
+    chaser_start: "Start",
+    chaser_stop: "Stop",
+    chaser_status_label: "Status:",
+    chaser_status_running: "Running",
+    chaser_status_stopped: "Stopped",
+    chaser_parameters: "Chaser Parameters",
+    chaser_bpm: "BPM",
+    chaser_fade_ms: "Fade (ms)",
+    chaser_step_duration: "Step Duration (ms)",
+    chaser_duration_note: "Set Duration to 0 to follow BPM speed.",
+    chaser_sequence: "Chaser Scene Sequence",
+    step: "Step",
+    chaser_step_off: "Off",
+    chaser_step_black: "Black",
+    chaser_presets_label: "Presets:",
+    chaser_save_preset: "Save",
+    // Robo page
+    robo: "Robo",
+    robo_dmx_assign: "DMX Channel Assignment",
+    robo_ch_x: "Channel X",
+    robo_ch_y: "Channel Y",
+    robo_movement: "Automated Movement",
+    robo_shape: "Shape",
+    robo_shape_circle: "Circle",
+    robo_shape_figure8: "Figure-8",
+    robo_shape_lineh: "Horizontal Line",
+    robo_shape_linev: "Vertical Line",
+    robo_speed: "Speed",
+    robo_size: "Size",
+    robo_offset_x: "Offset X",
+    robo_offset_y: "Offset Y",
+    robo_start: "Start",
+    robo_stop: "Stop",
+    robo_center: "Center",
+    // JS messages
+    scene_updated_faders_reset: "Scene updated, faders reset",
+    confirm_clear_scene: "Clear scene {n}?",
+    dmx_channels_reset: "DMX channels reset to 0",
+    scenes_and_dmx_reset: "Scenes and DMX channels reset to 0",
+    artnet_settings_applied: "DMX over IP settings applied. Restarting if protocol was changed.",
+    espnow_settings_applied: "ESP-NOW setting applied. Restarting...",
+    ha_url_token_required: "Home Assistant URL and Token are required",
+    ha_found_lights: "Found {n} Home Assistant lights",
+    ha_connection_error: "HA connection error. ",
+    ha_check_url_cors: "Check HA URL and CORS config.",
+    ha_send_error: "HA send error",
+    factory_reset_confirm: "CONFIRM FACTORY RESET? This action is irreversible.",
+    reboot_confirm: "CONFIRM REBOOT?",
+    language: "Language",
+    select_language: "Select Language",
+    select_theme: "Theme",
+    reset_fader_customs: "Fader Names & Colors",
+    reset_fader_customs_btn: "Reset",
+    confirm_fader_reset: "Are you sure you want to reset ALL fader names and colors?",
+    faders_reset_success: "Fader names and colors have been reset.",
+  }
+};
+
+function t(key, replacements = {}) {
+  let text = translations[currentLanguage][key] || key;
+  for (const placeholder in replacements) {
+    text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+  }
+  return text;
+}
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  currentLanguage = lang;
+  document.querySelectorAll('[data-i18n-key]').forEach(el => {
+    const key = el.getAttribute('data-i18n-key');
+    const targetAttr = el.getAttribute('data-i18n-target') || 'textContent';
+    const suffix = el.getAttribute('data-i18n-suffix') || '';
+    if (targetAttr === 'textContent') {
+      el.textContent = t(key) + suffix;
+    } else {
+      el.setAttribute(targetAttr, t(key) + suffix);
+    }
+  });
+  document.querySelectorAll('[data-i18n-placeholder-key]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder-key');
+    el.setAttribute('placeholder', t(key));
+  });
+  document.querySelectorAll('[data-i18n-confirm-key]').forEach(el => {
+    const key = el.getAttribute('data-i18n-confirm-key');
+    const originalOnsubmit = el.getAttribute('onsubmit');
+    if (originalOnsubmit && originalOnsubmit.includes('confirm')) {
+      el.setAttribute('onsubmit', `return confirm(t('${key}'));`);
+    }
+  });
+  // Special cases that need manual update
+  updateChaserUI();
+  buildPageButtons();
+}
+
+function handleLangChange(lang) {
+  setLanguage(lang);
+  localStorage.setItem('dmxConsoleLang', lang);
+}
+
+function setTheme(theme) {
+  document.body.classList.remove('light-theme', 'dark-theme');
+  document.body.classList.add(theme + '-theme');
+  currentTheme = theme;
+}
+
+function handleThemeChange(theme) {
+  setTheme(theme);
+  localStorage.setItem('dmxConsoleTheme', theme);
+  if (typeof drawXYPad === 'function') {
+    drawXYPad();
+  }
+  updateAllFaderColors();
+}
+
+function updateAllFaderColors() {
+  for (let i = 1; i <= TOTAL_FADERS; i++) {
+    const faderEl = document.getElementById('ch' + i)?.closest('.fader');
+    if (faderEl) {
+      const customColor = faderCustoms.colors[i - 1];
+      if (customColor) {
+        faderEl.style.setProperty('--fader-bg-color', customColor);
+      } else {
+        faderEl.style.removeProperty('--fader-bg-color');
+      }
+    }
+  }
+}
+
+function resetFaderCustoms() {
+  if (confirm(t('confirm_fader_reset'))) {
+    if (ws && ws.readyState === 1) {
+      ws.send('reset_fader_customs');
+    }
+  }
+}
+
+function rebootDevice() {
+  if (confirm(t('reboot_confirm'))) {
+    if (ws && ws.readyState === 1) {
+      ws.send('reboot');
+      toast("Rebooting...");
+    }
+  }
+}
+
+function toggleStaticFields() {
+  const useStatic = document.getElementById('use_static_ip').checked;
+  document.getElementById('static_ip_fields').style.display = useStatic ? 'grid' : 'none';
+}
+
+const WS = `ws://${location.hostname}:81/`;
+const TOTAL_FADERS = 96;
+const FADERS_PER_PAGE = 24;
+const FADERS_PER_ROW = 12;
+
+let ws, curPage=1;
+let recArmed=false, clearArmed=false;
+let toastTimer=null;
+let blackoutActive=false;
+let clearClicks = 0;
+let clearClickTimer = null;
+const CLEAR_CLICK_DELAY = 300;
+let preBlackoutHAState = {};
+let faderCustoms = { names: [], colors: [] };
+let sceneFaderLevels = new Array(12).fill(0);
+let sceneSaveTimer = null;
+let initialDataLoaded = false;
+let sceneStatus = new Array(12).fill(0);
+let editingSceneIndex = null;
+let ignoreBlackoutState = new Array(TOTAL_FADERS).fill(false);
+
+// --- XY Pad State ---
+let xyCanvas, xyCtx;
+let xyPad = {
+  x_channels: [],
+  y_channels: [],
+  shape: 'circle',
+  speed: 1,
+  size: 50,
+  offsetX: 0,
+  offsetY: 0,
+  running: false,
+  animationFrameId: null,
+  startTime: 0,
+  pos: { x: 0.5, y: 0.5 }, // Position from 0.0 to 1.0
+  isDragging: false,
+  dragStart: { x: 0, y: 0, offsetX: 0, offsetY: 0 }
+};
+
+function toast(msg){
+  const t=document.getElementById('toast'); if(!t) return;
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'), 1400);
+}
+function showTab(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+function openSettings(){
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('settings').classList.add('active');
+}
+function gotoPage(n){
+  curPage = n;
+  const numPages = Math.ceil(TOTAL_FADERS / FADERS_PER_PAGE);
+
+  for (let i = 1; i <= numPages; i++) {
+    const pageDiv = document.getElementById(`page${i}`);
+    if (pageDiv) pageDiv.style.display = (i === n) ? 'block' : 'none';
+
+    const btn = document.getElementById(`hp${i}`);
+    if (btn) btn.classList.toggle('active', i === n);
+  }
+}
+
+function buildPageButtons() {
+    const container = document.getElementById('fader-page-controls');
+    if (!container) return;
+    container.innerHTML = ''; // Clear existing
+
+    const numPages = Math.ceil(TOTAL_FADERS / FADERS_PER_PAGE);
+
+    for (let i = 1; i <= numPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        if (i === curPage) btn.classList.add('active');
+        btn.id = `hp${i}`;
+        btn.textContent = `${t('page')} ${i}`;
+        btn.onclick = () => gotoPage(i);
+        container.appendChild(btn);
+    }
+    const gearBtn = document.createElement('button');
+    gearBtn.className = 'gear';
+    gearBtn.title = t('settings_title');
+    gearBtn.onclick = openSettings;
+    gearBtn.innerHTML = '⚙️';
+    container.appendChild(gearBtn);
+}
+
+function mkFader(i){
+  const d=document.createElement('div');
+  d.className='fader';
+  const faderId = `CH${i}`;
+  const faderColor = faderCustoms.colors[i-1] || '#262626';
+  const faderName = faderCustoms.names[i-1] || `CH ${i}`;
+
+  d.style.setProperty('--fader-bg-color', faderColor);
+
+  let html = `<div class="hdr">
+                <label><span class="fader-name" title="Double-clic pour renommer">${faderName}</span></label>
+                <div class="val" id="val${i}" title="Double-clic pour couleur">0</div>
+              </div>
+              <input type="range" class="v" id="ch${i}" min="0" max="255" value="0" oninput="onSlide(${i})">
+              <div class="fader-color-picker-wrapper">
+                <input type="color" id="color-picker-${i}" class="fader-color-picker" value="${faderColor}">
+              </div>`;
+  if (haSettings.enabled) {
+    html += `<div class="ha-select-wrap">
+               <select id="ha-ch${i}" onchange="onHASelect(${i})">
+                 <option value="">-- Aucune --</option>
+               </select>
+             </div>`;
+  }
+  d.innerHTML = html;
+
+  const xyAssignDiv = document.createElement('div');
+  xyAssignDiv.className = 'fader-xy-assign';
+  xyAssignDiv.innerHTML = `
+    <span class="xy-assign-btn" onclick="assignRoboAxis('x', ${i})">X</span>
+    <span class="xy-assign-btn b-btn" onclick="toggleBlackoutIgnore(${i})">B</span>
+    <span class="xy-assign-btn" onclick="assignRoboAxis('y', ${i})">Y</span>
+  `;
+  d.appendChild(xyAssignDiv);
+
+  const colorInput = d.querySelector(`#color-picker-${i}`);
+  const valDiv = d.querySelector(`#val${i}`);
+
+  colorInput.addEventListener('input', (event) => {
+    const newColor = event.target.value;
+    if (ws && ws.readyState === 1) {
+      ws.send(`set_color:${i}:${newColor}`);
+    }
+  });
+
+  valDiv.addEventListener('dblclick', () => {
+    colorInput.click();
+  });
+
+  d.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    const defaultColor = (currentTheme === 'light') ? '#ffffff' : '#262626';
+    if (ws && ws.readyState === 1) {
+      ws.send(`set_color:${i}:${defaultColor}`);
+    }
+  });
+
+  const nameSpan = d.querySelector('.fader-name');
+  nameSpan.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    if (document.activeElement === nameSpan) return;
+    nameSpan.setAttribute('contenteditable', 'true');
+    nameSpan.focus();
+    document.execCommand('selectAll', false, null);
+  });
+  nameSpan.addEventListener('blur', () => {
+    nameSpan.setAttribute('contenteditable', 'false');
+    const newName = nameSpan.textContent.trim();
+    if (newName && ws && ws.readyState === 1) {
+      ws.send(`set_name:${i}:${newName}`);
+    } else {
+      // Restore original name if empty
+      nameSpan.textContent = faderCustoms.names[i-1] || `CH ${i}`;
+    }
+  });
+  nameSpan.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nameSpan.blur();
+    } else if (e.key === 'Escape') {
+      nameSpan.textContent = faderCustoms.names[i-1] || `CH ${i}`;
+      nameSpan.blur();
+    }
+  });
+
+  return d;
+}
+function mkSceneLevel(i){
+  const d=document.createElement('div'); d.className='fader';
+  d.innerHTML = `<div class="hdr"><label>S${i}</label><div class="val" id="slv${i}">0</div></div>
+                 <input type="range" class="v" id="sid${i}" min="0" max="255" value="0" oninput="onSceneSlide(${i})">`;
+  return d;
+}
+function buildUI(){
+  const fadersColumn = document.getElementById('faders-column');
+  const scenebar = document.querySelector('.scenebar');
+
+  // Clear existing pages to prevent duplication on rebuild
+  const existingPages = fadersColumn.querySelectorAll('div[id^="page"]');
+  existingPages.forEach(p => p.remove());
+
+  const numPages = Math.ceil(TOTAL_FADERS / FADERS_PER_PAGE);
+
+  for (let p = 1; p <= numPages; p++) {
+    const pageDiv = document.createElement('div');
+    pageDiv.id = `page${p}`;
+    if (p !== curPage) pageDiv.style.display = 'none';
+
+    const numRowsOnPage = Math.ceil(FADERS_PER_PAGE / FADERS_PER_ROW);
+    for (let r = 1; r <= numRowsOnPage; r++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'row';
+      if (r > 1) {
+        rowDiv.classList.add('row-separator');
+      }
+      pageDiv.appendChild(rowDiv);
+    }
+    fadersColumn.insertBefore(pageDiv, scenebar);
+  }
+
+  for (let i = 1; i <= TOTAL_FADERS; i++) {
+    const pageNum = Math.floor((i - 1) / FADERS_PER_PAGE) + 1;
+    const faderIndexOnPage = (i - 1) % FADERS_PER_PAGE;
+    const rowNum = Math.floor(faderIndexOnPage / FADERS_PER_ROW);
+
+    const pageDiv = document.getElementById(`page${pageNum}`);
+    const rowDivs = pageDiv.querySelectorAll('.row');
+    if(rowDivs[rowNum]) {
+      rowDivs[rowNum].appendChild(mkFader(i));
+    }
+  }
+
+  // Clear and rebuild scene slots and levels to avoid duplication on rebuilds
+  if(slots) slots.innerHTML = '';
+  if(scenerow) scenerow.innerHTML = '';
+
+  for(let s=1;s<=12;s++){
+    const b=document.createElement('button'); b.className='btn slotbtn slot-empty'; b.id='slot'+s; b.textContent=String(s);
+    b.onclick=()=>onSlotPress(s);
+    if(slots) slots.appendChild(b);
+  }
+  for(let i=1;i<=12;i++) {
+    if(scenerow) scenerow.appendChild(mkSceneLevel(i));
+  }
+  buildPageButtons();
+}
+function onSlide(ch){
+  const s=document.getElementById('ch'+ch), v=document.getElementById('val'+ch);
+  const val = s.value;
+  v.textContent = val;
+  if(ws && ws.readyState===1) ws.send(`set:${ch}:${val}`);
+
+  if (haSettings.enabled) {
+    const haEntity = faderHALinks[ch];
+    if (haEntity) {
+      callHA(haEntity, val);
+    }
+  }
+}
+function onSceneSlide(idx) {
+    const slider = document.getElementById('sid' + idx);
+    const display = document.getElementById('slv' + idx);
+    if (!slider || !display) return;
+
+    const level = slider.value;
+    display.textContent = level;
+
+    if (ws && ws.readyState === 1) {
+        ws.send(`scene_level_live:${idx - 1}:${level}`);
+    }
+
+    if (sceneSaveTimer) {
+        clearTimeout(sceneSaveTimer);
+    }
+
+    sceneSaveTimer = setTimeout(() => {
+        if (ws && ws.readyState === 1) {
+            sceneFaderLevels[idx - 1] = parseInt(level, 10);
+            ws.send(`scene_level:${idx - 1}:${level}`);
+        }
+    }, 400);
+}
+function armRec(){ recArmed=!recArmed; clearArmed=false; recBtn.classList.toggle('armed', recArmed); clrBtn.classList.remove('armed'); }
+function armClear(){ clearArmed=!clearArmed; recArmed=false; clrBtn.classList.toggle('armed', clearArmed); recBtn.classList.remove('armed'); }
+function handleClearClick() {
+  clearClicks++;
+  if (clearClickTimer) clearTimeout(clearClickTimer);
+  clearClickTimer = setTimeout(() => {
+    if (ws && ws.readyState !== 1) {
+        clearClicks = 0;
+        return;
+    }
+    if (clearClicks === 1) {
+      armClear();
+    } else if (clearClicks === 2) {
+      ws.send('dmx_zero');
+      toast(t('dmx_channels_reset'));
+    } else if (clearClicks >= 3) {
+      ws.send('all_zero');
+      toast(t('scenes_and_dmx_reset'));
+    }
+    clearClicks = 0;
+  }, CLEAR_CLICK_DELAY);
+}
+function onSlotPress(n){
+  const sceneIdx = n - 1;
+
+  // 1. REC mode takes precedence
+  if(recArmed){
+    let haSceneState = {};
+    if (haSettings.enabled) {
+      for (const ch in faderHALinks) {
+        const entityId = faderHALinks[ch];
+        const slider = document.getElementById('ch' + ch);
+        if (entityId && slider) {
+          haSceneState[entityId] = parseInt(slider.value, 10);
+        }
+      }
+    }
+    const roboState = JSON.stringify(xyPad);
+    ws && ws.readyState===1 && ws.send(`scene_save_full:${sceneIdx}|${JSON.stringify(haSceneState)}|${roboState}`);
+    recArmed=false;
+    recBtn.classList.remove('armed');
+    editingSceneIndex = null; // Exit edit mode after REC save
+    updateSlotClasses(); // Refresh UI
+    return;
+  }
+
+  // 2. Clear mode is next
+  if(clearArmed){
+    if(confirm(t('confirm_clear_scene', {n: n}))){
+      ws && ws.readyState===1 && ws.send(`scene_clear:${sceneIdx}`);
+      if (editingSceneIndex === sceneIdx) {
+        editingSceneIndex = null; // Exit edit mode if the cleared scene was being edited
+      }
+    }
+    clearArmed=false;
+    clrBtn.classList.remove('armed');
+    updateSlotClasses(); // Refresh UI
+    return;
+  }
+
+  // 3. If clicking the scene that is already being edited, SAVE it.
+  if (editingSceneIndex === sceneIdx) {
+    let haSceneState = {};
+    if (haSettings.enabled) {
+      for (const ch in faderHALinks) {
+        const entityId = faderHALinks[ch];
+        const slider = document.getElementById('ch' + ch);
+        if (entityId && slider) {
+          haSceneState[entityId] = parseInt(slider.value, 10);
+        }
+      }
+    }
+    const roboState = JSON.stringify(xyPad);
+    ws && ws.readyState===1 && ws.send(`scene_save_full:${sceneIdx}|${JSON.stringify(haSceneState)}|${roboState}`);
+    editingSceneIndex = null; // Exit edit mode
+
+    // Per user request, reset faders to 0 after saving a modification.
+    ws.send('dmx_zero');
+    toast(t('scene_updated_faders_reset'));
+
+    // The `slots:` message from the backend will trigger updateSlotClasses to update the button color
+    return;
+  }
+
+  // 4. Default action: Load a scene to start editing it.
+  ws && ws.readyState===1 && ws.send(`scene_load:${n-1}`);
+  editingSceneIndex = sceneIdx; // Enter edit mode for the new scene
+  updateSlotClasses(); // Call to update classes for instant feedback
+}
+function toggleBlackoutIgnore(ch) {
+  if (!ws || ws.readyState !== 1) return;
+  const newState = !ignoreBlackoutState[ch-1];
+  ws.send(`ignore_bo:${ch}:${newState ? 1 : 0}`);
+}
+function updateFaderBOIgnore(ch) {
+    const fader = document.getElementById('ch' + ch)?.closest('.fader');
+    if (fader) {
+        const bBtn = fader.querySelector('.b-btn');
+        if (bBtn) {
+            bBtn.classList.toggle('active', ignoreBlackoutState[ch - 1]);
+        }
+    }
+}
+function updateAllFaderBOIgnores() {
+  for(let i=1; i<=TOTAL_FADERS; i++) {
+    updateFaderBOIgnore(i);
+  }
+}
+function updateSlotClasses(){
+  for(let i=1;i<=12;i++){
+    const b=document.getElementById('slot'+i); if(!b) continue;
+    const isEditing = editingSceneIndex === i - 1;
+    const isFull = (sceneStatus[i-1]|0) ? true : false;
+
+    b.classList.toggle('slot-editing', isEditing);
+    b.classList.toggle('slot-full', isFull && !isEditing);
+    b.classList.toggle('slot-empty', !isFull && !isEditing);
+  }
+}
+function sanitizeName(s){ return (s||"").replace(/[|,:]/g," ").trim().slice(0,31); }
+function updateProtocolUI() {
+  const proto = document.getElementById('dmxProtocol').value;
+  // Art-Net node name is only applicable to Art-Net
+  document.getElementById('artnetNodeNameRow').style.display = (proto == 1) ? 'block' : 'none';
+}
+function applyProtocolSettings(){
+  const proto=+dmxProtocol.value|0, u=+univ.value|0, p=+prio.value|0, name=sanitizeName(document.getElementById('nodeName').value);
+  const ledEn=+document.getElementById('ledArtEnable').value|0;
+  const ledU=+document.getElementById('ledUniv').value|0;
+  const ledOrder=+document.getElementById('ledColorOrder').value|0;
+  ws && ws.readyState===1 && ws.send(`cfgx2:${proto}:${u}:${p}:${name}:${ledEn}:${ledU}:${ledOrder}`);
+  toast(t('artnet_settings_applied'));
+}
+function applyEspnowSettings(){
+  const mode = +document.getElementById('espnowMode').value|0;
+  const channel = +document.getElementById('espnowChannel').value|0;
+  const intensityOnly = document.getElementById('espnowIntensityOnly').checked ? 1 : 0;
+
+  // Send the new combined message
+  if (ws && ws.readyState === 1) {
+    ws.send(`espnow_cfg:${channel}:${intensityOnly}`);
+  }
+
+  // Also send the mode change, as it might be handled separately or require a different restart logic
+  if (ws && ws.readyState === 1) {
+    ws.send(`espnow_mode:${mode}`);
+  }
+
+  toast(t('espnow_settings_applied'));
+  setTimeout(()=>document.location.reload(), 2000);
+}
+let haSettings = { enabled: false, url: '', token: '' };
+let haLights = [];
+let faderHALinks = {};
+
+function sendHALinks() {
+  if (!ws || ws.readyState !== 1) return;
+  const linkedChannels = Object.keys(faderHALinks);
+  ws.send(`ha_links:${linkedChannels.join(',')}`);
+}
+
+function rebuildFadersUI() {
+  // The new buildUI handles clearing and rebuilding everything.
+  buildUI();
+  // We need to re-apply the DMX values from the server after rebuilding the UI
+  if(ws && ws.readyState===1) ws.send('hello');
+  // Also re-populate the HA selectors if needed
+  repopulateFaderHASelectors();
+}
+
+function toggleHASettings() {
+  const isEnabled = document.getElementById('haEnabled').checked;
+  document.getElementById('haConfigFields').style.display = isEnabled ? 'grid' : 'none';
+  haSettings.enabled = isEnabled;
+  localStorage.setItem('haSettings', JSON.stringify(haSettings));
+
+  if (!isEnabled) {
+    haLights = [];
+    faderHALinks = {};
+    localStorage.removeItem('faderHALinks');
+  }
+  rebuildFadersUI();
+  sendHALinks();
+}
+
+function saveHASettings() {
+  const url = document.getElementById('haUrl').value.trim();
+  const token = document.getElementById('haToken').value.trim();
+
+  haSettings.url = url;
+  haSettings.token = token;
+
+  if (haSettings.enabled && (!url || !token)) {
+    toast(t('ha_url_token_required'));
+    return;
+  }
+
+  localStorage.setItem('haSettings', JSON.stringify(haSettings));
+  if (haSettings.enabled) {
+    fetchHALights();
+  }
+}
+
+function loadHASettings() {
+  const saved = localStorage.getItem('haSettings');
+  if (saved) {
+    haSettings = JSON.parse(saved);
+    const haEnabledCheckbox = document.getElementById('haEnabled');
+    haEnabledCheckbox.checked = haSettings.enabled;
+    document.getElementById('haConfigFields').style.display = haSettings.enabled ? 'grid' : 'none';
+    document.getElementById('haUrl').value = haSettings.url || '';
+    document.getElementById('haToken').value = haSettings.token || '';
+  }
+
+  if (haSettings.enabled) {
+    const savedLinks = localStorage.getItem('faderHALinks');
+    if (savedLinks) {
+      faderHALinks = JSON.parse(savedLinks);
+    }
+    // We need to rebuild the UI *before* fetching lights and populating them
+    rebuildFadersUI();
+    fetchHALights();
+  }
+}
+
+async function fetchHALights() {
+  if (!haSettings.enabled || !haSettings.url || !haSettings.token) return;
+  try {
+    const url = haSettings.url.replace(/\/+$/, ''); // Supprimer les slashs en fin d'URL
+    const response = await fetch(`${url}/api/states`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${haSettings.token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+    const data = await response.json();
+    haLights = data.filter(e => e.entity_id.startsWith('light.')).map(e => ({
+      id: e.entity_id,
+      name: e.attributes.friendly_name || e.entity_id
+    }));
+    haLights.sort((a, b) => a.name.localeCompare(b.name));
+    toast(t('ha_found_lights', {n: haLights.length}));
+    repopulateFaderHASelectors();
+  } catch (error) {
+    console.error(t('ha_connection_error'), error);
+    let errorMsg = t('ha_connection_error');
+    if (error instanceof TypeError) { // Likely a network or CORS error
+      errorMsg += t('ha_check_url_cors');
+    } else {
+      errorMsg += error.message;
+    }
+    toast(errorMsg);
+    haLights = [];
+    repopulateFaderHASelectors();
+  }
+}
+
+function repopulateFaderHASelectors() {
+  if (!haSettings.enabled) return;
+  for (let i = 1; i <= TOTAL_FADERS; i++) {
+    const select = document.getElementById(`ha-ch${i}`);
+    if (!select) continue;
+    select.innerHTML = '<option value="">-- Aucune --</option>';
+    haLights.forEach(light => {
+      const opt = document.createElement('option');
+      opt.value = light.id;
+      opt.textContent = light.name;
+      select.appendChild(opt);
+    });
+    select.value = faderHALinks[i] || '';
+  }
+}
+
+function onHASelect(ch) {
+  const select = document.getElementById(`ha-ch${ch}`);
+  if (select.value) {
+    faderHALinks[ch] = select.value;
+  } else {
+    delete faderHALinks[ch];
+  }
+  localStorage.setItem('faderHALinks', JSON.stringify(faderHALinks));
+  sendHALinks();
+}
+
+function callHA(entityId, value) {
+  if (!haSettings.enabled || !haSettings.url || !haSettings.token || !entityId) return;
+  const url = haSettings.url.replace(/\/+$/, ''); // Supprimer les slashs en fin d'URL
+  const service = value > 0 ? 'turn_on' : 'turn_off';
+  const body = { entity_id: entityId };
+  if (service === 'turn_on') {
+    body.brightness = value;
+  }
+
+  fetch(`${url}/api/services/light/${service}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${haSettings.token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  }).catch(error => {
+    console.error(t('ha_send_error'), error);
+    toast(t('ha_send_error'));
+  });
+}
+
+/* BLACKOUT */
+function setBlackoutUI(en){
+  blackoutActive = !!en;
+  const b = document.getElementById('blackoutBtn'); if(!b) return;
+  b.classList.toggle('active', blackoutActive);
+}
+function toggleBlackout(){
+  const en = blackoutActive ? 0 : 1;
+  ws && ws.readyState===1 && ws.send(`blackout:${en}`);
+  setBlackoutUI(en);
+}
+function initWS(){
+  ws=new WebSocket(WS);
+  ws.onopen = ()=> {
+    ws.send('hello');
+    sendHALinks();
+  };
+  ws.onclose = ()=> setTimeout(initWS,1500);
+  ws.onmessage = (e)=>{
+    const t=e.data||'';
+    if (t.startsWith('init:')){
+      // --- This is the master init message. Parse EVERYTHING, store it in globals, then signal that we are ready to build the UI.
+      
+      // Part 1: Fader Customs (JSON) & Blackout Ignore
+      const bo_parts = t.split('~');
+      const mainParts = bo_parts[0].split('§');
+      if (bo_parts.length > 1) {
+        const bo_str = bo_parts[1];
+        for(let i = 0; i < bo_str.length && i < TOTAL_FADERS; i++) {
+          ignoreBlackoutState[i] = (bo_str[i] === '1');
+        }
+      }
+
+      if (mainParts.length > 1) {
+        try {
+          const customs = JSON.parse(mainParts[1]);
+          if (customs.names && customs.colors) {
+            faderCustoms = customs;
+          }
+        } catch(e) { console.error("Failed to parse fader customs", e); }
+      }
+      
+      // Part 2: Core data (CSV-like)
+      const parts = mainParts[0].substring(5).split('|');
+      
+      const faderValues = (parts[0]||'').split(',');
+      const meta=(parts[1]||'').split(',');
+      const lv=(parts[2]||'').split(',');
+      const sl=(parts[3]||'').split(',');
+      const cps = (parts.length > 4) ? (parts[4]||'').split(',') : [];
+
+      // --- Store all data in global variables ---
+      if(meta.length>=10){
+        blackoutActive = (meta[13] === '1');
+        if(meta.length >= 28) {
+            const xy_data = meta[27] || '';
+            const xy_parts = xy_data.split('&');
+            xyPad.x_channels = (xy_parts[0] || '').split(',').filter(s => s.length > 0).map(item => {
+                const inverted = item.endsWith('i');
+                const ch = parseInt(inverted ? item.slice(0, -1) : item, 10);
+                return { ch, inverted };
+            });
+            xyPad.y_channels = (xy_parts[1] || '').split(',').filter(s => s.length > 0).map(item => {
+                const inverted = item.endsWith('i');
+                const ch = parseInt(inverted ? item.slice(0, -1) : item, 10);
+                return { ch, inverted };
+            });
+        }
+        if(meta.length >= 20 + 8){
+          chaserRunning = (+meta[16] === 1);
+        }
+      }
+      for(let i=0;i<lv.length;i++) { sceneFaderLevels[i] = parseInt(lv[i], 10); }
+      if(sl.length===12) { sceneStatus = sl.map(Number); }
+      if(cps.length === 4) { chaserPresetStatus = cps.map(Number); }
+      
+      // Signal that data is loaded and we are ready to build the UI
+      initialDataLoaded = { faderValues: faderValues, meta: meta };
+      return;
+    }
+    if (t.startsWith('ignore_bo:')) {
+      const p1 = t.indexOf(':', 10);
+      if (p1 > 0) {
+        const ch = parseInt(t.substring(10, p1), 10);
+        const state = parseInt(t.substring(p1 + 1), 10);
+        if (ch >= 1 && ch <= TOTAL_FADERS) {
+          ignoreBlackoutState[ch - 1] = (state !== 0);
+          updateFaderBOIgnore(ch);
+        }
+      }
+      return;
+    }
+    if (t.startsWith('robo_load:')) {
+      const roboJson = t.substring(10);
+      try {
+        const loadedState = JSON.parse(roboJson);
+        
+        // Stop current animation if it's running
+        if (xyPad.running) {
+          toggleXYAnimation();
+        }
+
+        // Update xyPad object
+        Object.assign(xyPad, loadedState);
+
+        // Update UI controls
+        document.getElementById('xy-ch-x').value = xyPad.x_ch;
+        document.getElementById('xy-ch-y').value = xyPad.y_ch;
+        document.getElementById('xy-shape').value = xyPad.shape;
+        document.getElementById('xy-speed').value = xyPad.speed;
+        document.getElementById('xy-size').value = xyPad.size;
+        document.getElementById('xy-offset-x').value = xyPad.offsetX;
+        document.getElementById('xy-offset-y').value = xyPad.offsetY;
+
+        // Redraw pad and send initial values
+        drawXYPad();
+        sendXYValues();
+
+        // Start animation if it was running in the scene
+        if (xyPad.running) {
+          toggleXYAnimation();
+        }
+        toast("Configuration Robo chargée de la scène.");
+      } catch(e) {
+        console.error("Failed to parse robo scene data", e);
+      }
+      return;
+    }
+    if (t.startsWith('chaser_config:')) {
+      const parts = t.substring(14).split(':');
+      if (parts.length === 2) {
+        const idx = parseInt(parts[0], 10);
+        const params = parts[1].split(',');
+
+        activeChaserPreset = idx;
+        updateChaserPresetButtons();
+
+        if (params.length >= 11) { // bpm, fade, duration, 8 scenes
+            document.getElementById('chaserBPM').value = params[0];
+            document.getElementById('chaserFade').value = params[1];
+            document.getElementById('chaserDuration').value = params[2];
+            for (let i = 0; i < 8; i++) {
+                const scene_val = +params[3 + i];
+                const sel = document.getElementById(`chaserS${i + 1}`);
+                if (sel) sel.value = (scene_val > 12) ? -1 : scene_val;
+            }
+            toast("Preset Chaser chargé.");
+        }
+      }
+      return;
+    }
+    if (t.startsWith('faders:')){
+      const f=t.substring(7).split(',');
+      for(let i=0;i<f.length;i++){
+        const ch=i+1, s=document.getElementById('ch'+ch), v=document.getElementById('val'+ch);
+        if(s) s.value=f[i];
+        if(v) v.textContent=f[i];
+      }
+      return;
+    }
+    if (t.startsWith('ha_blackout:')) {
+      const isBlackout = t.substring(12) === '1';
+      if (isBlackout) {
+        preBlackoutHAState = {}; // Clear previous state
+        for (const ch in faderHALinks) {
+          const entityId = faderHALinks[ch];
+          const slider = document.getElementById('ch' + ch);
+          if (entityId && slider) {
+            preBlackoutHAState[entityId] = parseInt(slider.value, 10);
+            callHA(entityId, 0); // Turn off light
+          }
+        }
+      } else { // Blackout is turning off
+        for (const entityId in preBlackoutHAState) {
+          const value = preBlackoutHAState[entityId];
+          callHA(entityId, value); // Restore light level
+        }
+        preBlackoutHAState = {}; // Clear state
+      }
+      return;
+    }
+    if (t.startsWith('levels:')){
+      const lv=t.substring(7).split(',');
+      for(let i=0;i<lv.length;i++){ const idx=i+1, s=document.getElementById('sid'+idx), v=document.getElementById('slv'+idx); if(s) s.value=lv[i]; if(v) v.textContent=lv[i]; }
+      return;
+    }
+    if (t.startsWith('slots:')){
+      const sl=t.substring(6).split(',');
+      if(sl.length===12) {
+        sceneStatus = sl.map(Number);
+        updateSlotClasses();
+      }
+      return;
+    }
+    if (t.startsWith('ha_load:')) {
+      const parts = t.substring(8).split(':');
+      if (parts.length < 2) return;
+      const sceneIdx = parseInt(parts[0], 10);
+      const haJson = parts.slice(1).join(':');
+
+      if (isNaN(sceneIdx) || sceneIdx < 0 || sceneIdx >= 12) return;
+
+      const sceneLevel = sceneFaderLevels[sceneIdx];
+
+      try {
+        const haSceneState = JSON.parse(haJson);
+        for (const entityId in haSceneState) {
+          if (Object.hasOwnProperty.call(haSceneState, entityId)) {
+            const savedValue = parseInt(haSceneState[entityId], 10);
+            const scaledValue = Math.round((savedValue * sceneLevel) / 255);
+
+            callHA(entityId, scaledValue);
+
+            // Update the UI fader for the corresponding channel
+            for (const ch in faderHALinks) {
+              if (faderHALinks[ch] === entityId) {
+                const slider = document.getElementById('ch' + ch);
+                const valueDisplay = document.getElementById('val' + ch);
+                if (slider) slider.value = scaledValue;
+                if (valueDisplay) valueDisplay.textContent = scaledValue;
+                if (slider) slider.value = value;
+                if (valueDisplay) valueDisplay.textContent = value;
+                if (ws && ws.readyState === 1) {
+                  ws.send(`set:${ch}:${value}`);
+                }
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse HA scene JSON", e);
+      }
+      return;
+    }
+    if (t.startsWith('set:')) {
+      const parts = t.substring(4).split(':');
+      if (parts.length === 2) {
+        const ch = parseInt(parts[0], 10);
+        const val = parseInt(parts[1], 10);
+        const slider = document.getElementById('ch' + ch);
+        const valueDisplay = document.getElementById('val' + ch);
+        if (slider) slider.value = val;
+        if (valueDisplay) valueDisplay.textContent = val;
+      }
+      return;
+    }
+    if (t.startsWith('ha_val:')) {
+      const parts = t.substring(7).split(':');
+      if (parts.length === 2) {
+        const ch = parseInt(parts[0], 10);
+        const val = parseInt(parts[1], 10);
+        if (haSettings.enabled) {
+          const entityId = faderHALinks[ch];
+          if (entityId) {
+            callHA(entityId, val);
+            const slider = document.getElementById('ch' + ch);
+            const valueDisplay = document.getElementById('val' + ch);
+            if (slider) slider.value = val;
+            if (valueDisplay) valueDisplay.textContent = val;
+          }
+        }
+      }
+      return;
+    }
+    if (t.startsWith('set_name:')) {
+      const p1 = t.indexOf(':', 9);
+      if (p1 > 0) {
+        const ch = parseInt(t.substring(9, p1), 10);
+        const name = t.substring(p1 + 1);
+        faderCustoms.names[ch - 1] = name;
+        const faderEl = document.getElementById('ch' + ch)?.closest('.fader');
+        if (faderEl) {
+          faderEl.querySelector('.fader-name').textContent = name;
+        }
+      }
+      return;
+    }
+    if (t.startsWith('set_color:')) {
+      const p1 = t.indexOf(':', 10);
+      if (p1 > 0) {
+        const ch = parseInt(t.substring(10, p1), 10);
+        const color = t.substring(p1 + 1);
+        faderCustoms.colors[ch - 1] = color;
+        const faderEl = document.getElementById('ch' + ch)?.closest('.fader');
+        if (faderEl) {
+          faderEl.style.setProperty('--fader-bg-color', color);
+          faderEl.querySelector('.fader-color-picker').value = color;
+        }
+      }
+      return;
+    }
+    if (t === 'reinit') {
+      location.reload();
+      return;
+    }
+    if (t.startsWith('chaser_step:')) {
+      const step = t.substring(12);
+      document.querySelectorAll('.chaser-step').forEach(el => el.classList.remove('active'));
+      const activeStepEl = document.getElementById(`chaser-step-${step}`);
+      if (activeStepEl) {
+        activeStepEl.classList.add('active');
+      }
+      return;
+    }
+  };
+}
+let chaserRunning = false;
+let activeChaserPreset = 0;
+let chaserPresetStatus = [0,0,0,0];
+let chaserRecArmed = false;
+
+function onBPMChange() {
+  document.getElementById('chaserDuration').value = 0;
+  sendChaserParams();
+}
+
+function sendChaserParams() {
+  if (!ws || ws.readyState !== 1) return;
+  const bpm = +document.getElementById('chaserBPM').value;
+  const fade = +document.getElementById('chaserFade').value;
+  const duration = +document.getElementById('chaserDuration').value;
+  ws.send(`chaser_params:${bpm}:${fade}:${duration}`);
+}
+
+function buildChaserUI() {
+    const container = document.querySelector('.chaser-scenes');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 1; i <= 8; i++) {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'chaser-step';
+        stepDiv.id = `chaser-step-${i-1}`;
+
+        const label = document.createElement('label');
+        label.textContent = `${t('step')} ${i}`;
+
+        const select = document.createElement('select');
+        select.id = `chaserS${i}`;
+        select.onchange = sendChaserScenes;
+        select.style.width = '70px';
+        select.style.textAlign = 'center';
+
+        select.add(new Option(t('chaser_step_off'), -1));
+        select.add(new Option(t('chaser_step_black'), 12));
+
+        for (let s = 1; s <= 12; s++) {
+            select.add(new Option(s, s - 1));
+        }
+
+        stepDiv.appendChild(label);
+        stepDiv.appendChild(select);
+        container.appendChild(stepDiv);
+    }
+}
+
+function sendChaserScenes() {
+  if (!ws || ws.readyState !== 1) return;
+  let scenes = [];
+  for(let i=1; i<=8; i++){
+    const sel = document.getElementById(`chaserS${i}`);
+    if (sel) scenes.push(+sel.value);
+  }
+  ws.send(`chaser_scenes:${scenes.join(':')}`);
+}
+
+function toggleChaser() {
+  chaserRunning = !chaserRunning;
+  if (!ws || ws.readyState !== 1) return;
+  ws.send(chaserRunning ? 'chaser_start' : 'chaser_stop');
+  updateChaserUI();
+}
+
+function updateChaserPresetButtons() {
+  document.querySelectorAll('.chaser-preset-btn').forEach((btn, index) => {
+    btn.classList.toggle('active', index === activeChaserPreset);
+  });
+}
+
+function armChaserRec() {
+  chaserRecArmed = !chaserRecArmed;
+  const recBtn = document.getElementById('chaserRecBtn');
+  if (recBtn) recBtn.classList.toggle('armed', chaserRecArmed);
+}
+
+function loadChaserPreset(presetIdx) {
+  if (chaserRecArmed) {
+    // --- SAVE LOGIC ---
+    if (ws && ws.readyState === 1) {
+      ws.send(`chaser_save:${presetIdx}`);
+      toast(`Configuration Chaser sauvegardée dans le preset ${presetIdx + 1}`);
+      chaserPresetStatus[presetIdx] = 1;
+      updateChaserPresetStatus();
+    }
+    // Disarm after saving
+    chaserRecArmed = false;
+    const recBtn = document.getElementById('chaserRecBtn');
+    if (recBtn) recBtn.classList.remove('armed');
+  } else {
+    // --- LOAD LOGIC ---
+    if (ws && ws.readyState === 1) {
+      ws.send(`chaser_load:${presetIdx}`);
+    }
+    // Set active state immediately for better UX, will be confirmed by backend message
+    activeChaserPreset = presetIdx;
+    updateChaserPresetButtons();
+  }
+}
+
+function updateChaserPresetStatus() {
+  document.querySelectorAll('.chaser-preset-btn').forEach((btn, index) => {
+    btn.classList.toggle('slot-full', chaserPresetStatus[index] == 1);
+  });
+}
+
+function updateChaserUI() {
+  const btn = document.getElementById('chaserToggleBtn');
+  const statusEl = document.getElementById('chaserStatus').querySelector('span:last-child');
+
+  if (chaserRunning) {
+    btn.textContent = t('chaser_stop');
+    btn.classList.add('active');
+    if (statusEl) statusEl.textContent = t('chaser_status_running');
+    if (statusEl) statusEl.style.color = '#2ecc71';
+  } else {
+    btn.textContent = t('chaser_start');
+    btn.classList.remove('active');
+    if (statusEl) statusEl.textContent = t('chaser_status_stopped');
+    if (statusEl) statusEl.style.color = '#c0392b';
+    document.querySelectorAll('.chaser-step').forEach(el => el.classList.remove('active'));
+  }
+}
+
+// --- XY Pad Logic ---
+function assignRoboAxis(axis, channel) {
+  const channelArray = (axis === 'x') ? xyPad.x_channels : xyPad.y_channels;
+  const existing = channelArray.find(item => item.ch === channel);
+
+  if (!existing) {
+    // State 1: Not assigned -> Add it, not inverted.
+    channelArray.push({ ch: channel, inverted: false });
+  } else if (!existing.inverted) {
+    // State 2: Assigned, not inverted -> Set to inverted.
+    existing.inverted = true;
+  } else {
+    // State 3: Assigned and inverted -> Remove it.
+    const index = channelArray.indexOf(existing);
+    if (index > -1) {
+      channelArray.splice(index, 1);
+    }
+  }
+  
+  sendXYAssign();
+  updateFaderXYAssignments();
+}
+
+function updateFaderXYAssignments() {
+  const faders = document.querySelectorAll('.fader');
+  faders.forEach((fader, index) => {
+    const channel = index + 1;
+    const xBtn = fader.querySelector('.xy-assign-btn:first-child');
+    const yBtn = fader.querySelector('.xy-assign-btn:last-child');
+
+    if (xBtn) {
+      const x_assign = xyPad.x_channels.find(item => item.ch === channel);
+      xBtn.classList.toggle('assigned', !!x_assign && !x_assign.inverted);
+      xBtn.classList.toggle('assigned-inverted', !!x_assign && x_assign.inverted);
+    }
+    if (yBtn) {
+      const y_assign = xyPad.y_channels.find(item => item.ch === channel);
+      yBtn.classList.toggle('assigned', !!y_assign && !y_assign.inverted);
+      yBtn.classList.toggle('assigned-inverted', !!y_assign && y_assign.inverted);
+    }
+  });
+}
+
+function updateRoboControlsState() {
+  const isManual = document.getElementById('xy-shape').value === 'manual';
+  document.getElementById('xy-speed').disabled = isManual;
+  document.getElementById('xy-size').disabled = isManual;
+  document.getElementById('xy-offset-x').disabled = isManual;
+  document.getElementById('xy-offset-y').disabled = isManual;
+  document.getElementById('xy-start-stop').disabled = isManual;
+}
+
+function setupXYPad() {
+  xyCanvas = document.getElementById('xyCanvas');
+  if (!xyCanvas) return;
+  xyCtx = xyCanvas.getContext('2d');
+
+  // --- Event Listeners for Controls ---
+  document.getElementById('xy-shape').addEventListener('change', (e) => {
+    xyPad.shape = e.target.value;
+    updateRoboControlsState();
+    drawXYPad();
+  });
+
+  const speedSlider = document.getElementById('xy-speed');
+  speedSlider.addEventListener('input', (e) => {
+    xyPad.speed = +e.target.value;
+  });
+
+  document.getElementById('xy-size').addEventListener('input', (e) => { xyPad.size = +e.target.value; drawXYPad(); });
+  document.getElementById('xy-offset-x').addEventListener('input', (e) => { xyPad.offsetX = +e.target.value; updateStaticXYPos(); });
+  document.getElementById('xy-offset-y').addEventListener('input', (e) => { xyPad.offsetY = +e.target.value; updateStaticXYPos(); });
+  document.getElementById('xy-start-stop').addEventListener('click', toggleXYAnimation);
+  document.getElementById('xy-center-btn').addEventListener('click', centerXYPad);
+
+  // --- Event Listeners for Canvas Interaction ---
+  xyCanvas.addEventListener('mousedown', handleXYDragStart);
+  xyCanvas.addEventListener('touchstart', handleXYDragStart, { passive: false });
+  xyCanvas.addEventListener('mousemove', handleXYDrag);
+  xyCanvas.addEventListener('touchmove', handleXYDrag, { passive: false });
+  xyCanvas.addEventListener('mouseup', handleXYDragEnd);
+  xyCanvas.addEventListener('touchend', handleXYDragEnd);
+  xyCanvas.addEventListener('mouseleave', handleXYDragEnd);
+
+  updateRoboControlsState();
+  drawXYPad(); // Initial draw
+}
+
+function sendXYAssign() {
+  if (!ws || ws.readyState !== 1) return;
+  const x_str = xyPad.x_channels.map(item => `${item.ch}${item.inverted ? 'i' : ''}`).join(',');
+  const y_str = xyPad.y_channels.map(item => `${item.ch}${item.inverted ? 'i' : ''}`).join(',');
+  ws.send(`xy_assign:${x_str}&${y_str}`);
+}
+
+function sendXYValues() {
+  if (!ws || ws.readyState !== 1 || (xyPad.x_channels.length === 0 && xyPad.y_channels.length === 0)) return;
+  const x_val = Math.round(xyPad.pos.x * 255);
+  const y_val = Math.round(xyPad.pos.y * 255);
+  ws.send(`xy_values:${x_val}:${y_val}`);
+}
+
+function drawXYPad() {
+  if (!xyCtx) return;
+  const w = xyCanvas.width;
+  const h = xyCanvas.height;
+  const styles = getComputedStyle(document.body);
+
+  // Clear canvas
+  xyCtx.fillStyle = styles.getPropertyValue('--input-bg').trim();
+  xyCtx.fillRect(0, 0, w, h);
+
+  // Draw grid
+  xyCtx.strokeStyle = styles.getPropertyValue('--input-border').trim();
+  xyCtx.lineWidth = 0.5;
+  for (let i = 1; i < 4; i++) {
+    xyCtx.beginPath();
+    xyCtx.moveTo(i * w / 4, 0);
+    xyCtx.lineTo(i * w / 4, h);
+    xyCtx.moveTo(0, i * h / 4);
+    xyCtx.lineTo(w, i * h / 4);
+    xyCtx.stroke();
+  }
+
+  // Draw center lines
+  xyCtx.strokeStyle = styles.getPropertyValue('--legend-text').trim();
+  xyCtx.lineWidth = 1;
+  xyCtx.beginPath();
+  xyCtx.moveTo(w / 2, 0);
+  xyCtx.lineTo(w / 2, h);
+  xyCtx.moveTo(0, h / 2);
+  xyCtx.lineTo(w, h / 2);
+  xyCtx.stroke();
+
+  // Draw shape outline
+  drawXYShapeOutline();
+
+  // Draw handle
+  xyCtx.fillStyle = styles.getPropertyValue('--link-color').trim();
+  xyCtx.beginPath();
+  xyCtx.arc(xyPad.pos.x * w, xyPad.pos.y * h, 6, 0, 2 * Math.PI);
+  xyCtx.fill();
+  xyCtx.strokeStyle = styles.getPropertyValue('--bg-color').trim();
+  xyCtx.lineWidth = 2;
+  xyCtx.stroke();
+}
+
+function drawXYShapeOutline() {
+    const w = xyCanvas.width;
+    const h = xyCanvas.height;
+    const size = (xyPad.size / 100) * (w / 2);
+    const offX = (xyPad.offsetX / 100) * (w / 2);
+    const offY = (xyPad.offsetY / 100) * (h / 2);
+
+    xyCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--input-border').trim();
+    xyCtx.lineWidth = 2;
+    xyCtx.beginPath();
+
+    switch (xyPad.shape) {
+        case 'circle':
+            xyCtx.arc(w / 2 + offX, h / 2 + offY, size, 0, 2 * Math.PI);
+            break;
+        case 'figure8':
+            for (let i = 0; i <= 100; i++) {
+                const t = (i / 50) * Math.PI;
+                const x = w / 2 + offX + size * Math.sin(t);
+                const y = h / 2 + offY + size * Math.sin(t) * Math.cos(t);
+                if (i === 0) xyCtx.moveTo(x, y);
+                else xyCtx.lineTo(x, y);
+            }
+            break;
+        case 'lineH':
+            xyCtx.moveTo(w / 2 + offX - size, h / 2 + offY);
+            xyCtx.lineTo(w / 2 + offX + size, h / 2 + offY);
+            break;
+        case 'lineV':
+            xyCtx.moveTo(w / 2 + offX, h / 2 + offY - size);
+            xyCtx.lineTo(w / 2 + offX, h / 2 + offY + size);
+            break;
+    }
+    xyCtx.stroke();
+}
+
+function updateStaticXYPos() {
+  if (xyPad.running) return;
+  const offX = xyPad.offsetX / 100;
+  const offY = xyPad.offsetY / 100;
+  xyPad.pos.x = Math.max(0, Math.min(1, 0.5 + (offX / 2)));
+  xyPad.pos.y = Math.max(0, Math.min(1, 0.5 + (offY / 2)));
+  sendXYValues();
+  drawXYPad();
+}
+
+function toggleXYAnimation() {
+  const btn = document.getElementById('xy-start-stop');
+  xyPad.running = !xyPad.running;
+  if (xyPad.running) {
+    btn.textContent = t('robo_stop');
+    btn.classList.add('active');
+    xyPad.startTime = performance.now();
+    xyPad.animationFrameId = requestAnimationFrame(runXYAnimation);
+  } else {
+    btn.textContent = t('robo_start');
+    btn.classList.remove('active');
+    if (xyPad.animationFrameId) {
+      cancelAnimationFrame(xyPad.animationFrameId);
+      xyPad.animationFrameId = null;
+    }
+    updateStaticXYPos();
+  }
+}
+
+function centerXYPad() {
+  xyPad.offsetX = 0;
+  xyPad.offsetY = 0;
+  document.getElementById('xy-offset-x').value = 0;
+  document.getElementById('xy-offset-y').value = 0;
+  updateStaticXYPos();
+  drawXYPad();
+}
+
+function runXYAnimation(timestamp) {
+  if (!xyPad.running) return;
+
+  const w = xyCanvas.width;
+  const h = xyCanvas.height;
+  const elapsedTime = timestamp - xyPad.startTime;
+  const speed = xyPad.speed / 8000;
+  const t = elapsedTime * speed;
+
+  let newX = 0.5, newY = 0.5; // Default to center
+  const size = xyPad.size / 100;
+  const offX = xyPad.offsetX / 100;
+  const offY = xyPad.offsetY / 100;
+
+  switch (xyPad.shape) {
+    case 'circle':
+      newX = 0.5 + (offX / 2) + (size / 2) * Math.cos(t);
+      newY = 0.5 + (offY / 2) + (size / 2) * Math.sin(t);
+      break;
+    case 'figure8':
+      newX = 0.5 + (offX / 2) + (size / 2) * Math.sin(t);
+      newY = 0.5 + (offY / 2) + (size / 2) * Math.sin(t) * Math.cos(t);
+      break;
+    case 'lineH':
+      newX = 0.5 + (offX / 2) + (size / 2) * Math.sin(t);
+      newY = 0.5 + (offY / 2);
+      break;
+    case 'lineV':
+      newX = 0.5 + (offX / 2);
+      newY = 0.5 + (offY / 2) + (size / 2) * Math.sin(t);
+      break;
+  }
+
+  xyPad.pos.x = Math.max(0, Math.min(1, newX));
+  xyPad.pos.y = Math.max(0, Math.min(1, newY));
+
+  sendXYValues();
+  drawXYPad();
+
+  xyPad.animationFrameId = requestAnimationFrame(runXYAnimation);
+}
+
+function handleXYDragStart(e) {
+  e.preventDefault();
+  const touch = e.touches ? e.touches[0] : e;
+  xyPad.dragStart.x = touch.clientX;
+  xyPad.dragStart.y = touch.clientY;
+  xyPad.dragStart.offsetX = xyPad.offsetX;
+  xyPad.dragStart.offsetY = xyPad.offsetY;
+  xyPad.isDragging = true;
+
+  // If animation is stopped, process the initial click immediately for manual positioning
+  if (!xyPad.running) {
+    handleXYDrag(e);
+  }
+}
+
+function handleXYDrag(e) {
+  if (!xyPad.isDragging) return;
+  e.preventDefault();
+  const touch = e.touches ? e.touches[0] : e;
+
+  if (xyPad.running) {
+    // If animation is RUNNING, drag to move the shape's OFFSET
+    const dx = touch.clientX - xyPad.dragStart.x;
+    const dy = touch.clientY - xyPad.dragStart.y;
+    const offsetX = xyPad.dragStart.offsetX + (dx / xyCanvas.width) * 200; // Scale to new range -100 to 100
+    const offsetY = xyPad.dragStart.offsetY + (dy / xyCanvas.height) * 200;
+    xyPad.offsetX = Math.max(-100, Math.min(100, offsetX));
+    xyPad.offsetY = Math.max(-100, Math.min(100, offsetY));
+    document.getElementById('xy-offset-x').value = xyPad.offsetX;
+    document.getElementById('xy-offset-y').value = xyPad.offsetY;
+  } else {
+    // If animation is STOPPED, drag to set the light's POSITION directly
+    const rect = xyCanvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    xyPad.pos.x = Math.max(0, Math.min(1, x / xyCanvas.width));
+    xyPad.pos.y = Math.max(0, Math.min(1, y / xyCanvas.height));
+    sendXYValues();
+  }
+
+  drawXYPad();
+}
+
+function handleXYDragEnd(e) {
+  if (!xyPad.isDragging) return;
+  e.preventDefault();
+  xyPad.isDragging = false;
+}
+
+window.addEventListener('load', ()=>{
+  // Load settings that don't depend on the server
+  const savedLang = localStorage.getItem('dmxConsoleLang') || 'fr';
+  document.getElementById('langSelector').value = savedLang;
+  const savedTheme = localStorage.getItem('dmxConsoleTheme') || 'dark';
+  document.getElementById('themeSelector').value = savedTheme;
+  setTheme(savedTheme);
+  loadHASettings();
+
+  // Defer building the main UI until we have data from the server
+  const buildInterval = setInterval(() => {
+    if (initialDataLoaded) {
+      clearInterval(buildInterval);
+
+      // 1. Build the main UI structures
+      buildUI();
+      updateAllFaderColors();
+      buildChaserUI();
+      
+      // 2. Apply all the state we received from the init message
+      const { faderValues, meta } = initialDataLoaded;
+      
+      for(let i=0; i<faderValues.length; i++){ 
+        const ch=i+1, s=document.getElementById('ch'+ch), v=document.getElementById('val'+ch); 
+        if(s) s.value=faderValues[i]; if(v) v.textContent=faderValues[i]; 
+      }
+      for(let i=0; i<sceneFaderLevels.length; i++){
+        const idx=i+1, s=document.getElementById('sid'+idx), v=document.getElementById('slv'+idx); 
+        if(s) s.value=sceneFaderLevels[i]; if(v) v.textContent=sceneFaderLevels[i];
+      }
+      
+      if(meta.length>=10){
+        dmxProtocol.value=+meta[0];
+        univ.value=+meta[1];
+        prio.value=+meta[2];
+        curip.textContent=meta[3];
+        const aponlyEl=document.getElementById('aponly'); if(aponlyEl) aponlyEl.value=+meta[4];
+        document.getElementById('nodeName').value = meta[5] || 'ConsoleDMX';
+        const useStaticCheck = document.getElementById('use_static_ip');
+        if (useStaticCheck) useStaticCheck.checked = (+meta[6] === 1);
+        document.getElementById('static_ip').value = meta[7] || '';
+        document.getElementById('static_subnet').value = meta[8] || '';
+        document.getElementById('static_gateway').value = meta[9] || '';
+        if (meta.length > 12) {
+            const enm = document.getElementById('espnowMode'); if(enm) enm.value = +meta[10];
+            const enc = document.getElementById('espnowChannel'); if(enc) enc.value = +meta[11];
+            const eni = document.getElementById('espnowIntensityOnly'); if(eni) eni.checked = (+meta[12] === 1);
+        }
+        if(meta.length > 16) {
+            const lae = document.getElementById('ledArtEnable'); if(lae) lae.value = +meta[14];
+            const luv = document.getElementById('ledUniv'); if(luv) luv.value = +meta[15];
+            const lco = document.getElementById('ledColorOrder'); if(lco) lco.value = +meta[16];
+        }
+        if(meta.length >= 20 + 8){
+          chaserBPM.value = meta[17];
+          chaserFade.value = meta[18];
+          chaserDuration.value = meta[19];
+          for(let i=0; i<8; i++){
+            const sel = document.getElementById(`chaserS${i+1}`);
+            if (sel) sel.value = (+meta[20+i] > 12) ? -1 : +meta[20+i];
+          }
+        }
+      }
+
+      updateSlotClasses();
+      updateChaserPresetStatus();
+      updateChaserUI();
+      updateFaderXYAssignments();
+      updateAllFaderBOIgnores();
+      updateProtocolUI();
+      toggleStaticFields();
+      setBlackoutUI(blackoutActive);
+      
+      // 3. Final setup
+      setLanguage(savedLang);
+      gotoPage(1);
+      setupXYPad();
+      document.getElementById('clrBtn').addEventListener('click', handleClearClick);
+      document.getElementById('chaserToggleBtn').addEventListener('click', toggleChaser);
+    }
+  }, 50);
+
+  initWS();
+});
+</script>
+</body></html>
