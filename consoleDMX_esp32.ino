@@ -13,7 +13,7 @@
 // --- DMX Libraries ---
 #include "esp_dmx.h"      // ESP32 native DMX driver
 #include <ArtnetWiFi.h>   // Using hideakitai/ArtNet v1.5.1 or later
-#include <E131.h>         // Using a compatible sACN library for ESP32
+#include <ESPAsyncE131.h>
 
 // --- Other Libraries ---
 #include <esp_now.h>
@@ -67,7 +67,7 @@ WebServer server(80);
 WebSocketsServer webSocket(81);
 DNSServer dnsServer;
 ArtnetWiFi artnet;
-E131 sacn;
+ESPAsyncE131 sacn(1); // Listen for 1 universe
 Preferences preferences;
 bool wifiAPMode = false;
 uint32_t restartAt = 0;
@@ -284,9 +284,55 @@ void chaserTask() {
   applyOutput();
 }
 
-void recomputeScenes();
-void setBlackout(bool enable);
 // ... other logic functions will be ported later
+
+void recomputeScenes() {
+  memset(scenesOut, 0, DMX_CHANNELS);
+  for (int s = 0; s < MAX_SCENES; s++) {
+    if (sceneLevels[s] == 0) continue;
+
+    // Pointer to the cached scene data
+    uint8_t* tempScene = sceneDataCache[s];
+
+    for (int ch = 0; ch < DMX_CHANNELS; ch++) {
+      if (tempScene[ch] == 0) continue;
+
+      // Scale the scene's channel value by the scene's master level
+      uint16_t v = (uint16_t)tempScene[ch] * (uint16_t)sceneLevels[s];
+      v /= 255;
+
+      // HTP merge with the output of other scenes
+      if (v > scenesOut[ch]) {
+        scenesOut[ch] = (uint8_t)(v > 255 ? 255 : v);
+      }
+    }
+  }
+}
+
+void setBlackout(bool enable) {
+  if (enable && !blackoutActive) {
+    memcpy(savedOut, outValues, DMX_CHANNELS); // Save the current state before blackout
+    blackoutActive = true;
+    webSocket.broadcastTXT("ha_blackout:1");
+    if (cfg.led_artnet_enable) {
+      FastLED.clear();
+      FastLED.show();
+    }
+  } else if (!enable && blackoutActive) {
+    blackoutActive = false;
+    webSocket.broadcastTXT("ha_blackout:0");
+    if (cfg.led_artnet_enable) {
+      for (int i = 0; i < NUM_LEDS; i++) {
+        int dmx_index = i * 3;
+        if (dmx_index + 2 < DMX_CHANNELS) {
+          leds[i].setRGB(ledArtnetValues[dmx_index], ledArtnetValues[dmx_index+1], ledArtnetValues[dmx_index+2]);
+        }
+      }
+      FastLED.show();
+    }
+  }
+  applyOutput(); // Apply the new state
+}
 
 // =================================================================
 // --- SETUP ---
@@ -364,8 +410,11 @@ void setup() {
       Serial.println("Protocol: Art-Net enabled.");
       break;
     case 2: // sACN
-      sacn.begin(E131_MULTICAST, cfg.universe);
-      Serial.println("Protocol: sACN enabled.");
+      if (sacn.begin(E131_MULTICAST, cfg.universe)) {
+        Serial.printf("Protocol: sACN enabled, universe %u\n", cfg.universe);
+      } else {
+        Serial.println("Error: Unable to start sACN.");
+      }
       break;
     default:
       Serial.println("Protocol: Network DMX disabled.");
@@ -447,20 +496,20 @@ void loop() {
   if(wifiAPMode) dnsServer.processNextRequest();
 
   if (cfg.dmx_protocol == 1) {
-    artnet.read();
+    artnet.parse();
   } else if (cfg.dmx_protocol == 2) {
-    while (!sacn.isEmpty()) {
-      e131_packet_t packet;
-      sacn.pull(&packet);
-      for (int i = 0; i < packet.property_value_count - 1 && i < DMX_CHANNELS; i++) {
-        uint8_t val = packet.property_values[i + 1];
-        if (val != artnetValues[i] && haAssignedChannels[i]) {
-          String msg = "ha_val:" + String(i + 1) + ":" + String(val);
-          webSocket.broadcastTXT(msg);
+    while (sacn.parse(&packet)) {
+      if (packet.universe == cfg.universe) {
+        for (int i = 0; i < packet.property_value_count - 1 && i < DMX_CHANNELS; i++) {
+          uint8_t val = packet.property_values[i + 1];
+          if (val != artnetValues[i] && haAssignedChannels[i]) {
+            String msg = "ha_val:" + String(i + 1) + ":" + String(val);
+            webSocket.broadcastTXT(msg);
+          }
+          artnetValues[i] = val;
         }
-        artnetValues[i] = val;
+        applyOutput();
       }
-      applyOutput();
     }
   }
 
@@ -844,26 +893,6 @@ void loadAssignments() {
           ignoreBlackout[ch - 1] = true;
         }
       }
-    }
-    f.close();
-  }
-}
-
-void loadFaderCustoms() {
-  File f = LittleFS.open("/fader_customs.json", "r");
-  if (f) {
-    StaticJsonDocument<4096> doc;
-    DeserializationError error = deserializeJson(doc, f);
-    if (!error) {
-      JsonArray names = doc["names"];
-      JsonArray colors = doc["colors"];
-      for (int i = 0; i < NUM_FADERS && i < names.size() && i < colors.size(); i++) {
-        faderNames[i] = names[i].as<String>();
-        faderColors[i] = colors[i].as<String>();
-      }
-      Serial.println("Fader customizations loaded.");
-    } else {
-      Serial.printf("Failed to parse fader customs: %s\n", error.c_str());
     }
     f.close();
   }
