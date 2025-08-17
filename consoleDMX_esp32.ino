@@ -171,6 +171,7 @@ void handleFactoryReset();
 void sendInit(uint8_t num);
 bool tryWiFiSTA(uint32_t timeoutMs);
 void startAP();
+String makeAPSSID();
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length);
 bool handleFileRead(String path);
 
@@ -283,28 +284,6 @@ void chaserTask() {
     }
   }
   applyOutput();
-}
-
-// ... other logic functions will be ported later
-  for (int s = 0; s < MAX_SCENES; s++) {
-    if (sceneLevels[s] == 0) continue;
-
-    // Pointer to the cached scene data
-    uint8_t* tempScene = sceneDataCache[s];
-
-    for (int ch = 0; ch < DMX_CHANNELS; ch++) {
-      if (tempScene[ch] == 0) continue;
-
-      // Scale the scene's channel value by the scene's master level
-      uint16_t v = (uint16_t)tempScene[ch] * (uint16_t)sceneLevels[s];
-      v /= 255;
-
-      // HTP merge with the output of other scenes
-      if (v > scenesOut[ch]) {
-        scenesOut[ch] = (uint8_t)(v > 255 ? 255 : v);
-      }
-    }
-  }
 }
 
 void setBlackout(bool enable) {
