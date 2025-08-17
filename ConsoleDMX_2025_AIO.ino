@@ -6,7 +6,6 @@
 #include <ESP8266mDNS.h>
 #include <FS.h>
 #include <LittleFS.h>
-#include <FastLED.h>
 #include <ArduinoJson.h>
 
 extern "C" {
@@ -14,9 +13,6 @@ extern "C" {
 }
 
 #define NUM_FADERS 96
-#define NUM_LEDS 170
-#define LED_DATA_PIN D5
-#define LED_TYPE    WS2812B
 #define DMX_CHANNELS 512
 #define MAX_SCENES 12
 #define EEPROM_SIZE 4096
@@ -35,7 +31,6 @@ struct Config {
   char static_subnet[16];
   char static_gateway[16];
   char nodeName[32];
-  uint8_t led_color_order;
 };
 const int ADDR_CONFIG = 0;
 ESP8266WebServer server(80);
@@ -47,8 +42,6 @@ uint8_t scenesOut[DMX_CHANNELS];
 uint8_t outValues[DMX_CHANNELS];
 uint8_t sceneNonEmpty[MAX_SCENES];
 uint8_t sceneDataCache[MAX_SCENES][DMX_CHANNELS];
-bool haAssignedChannels[DMX_CHANNELS];
-CRGB leds[NUM_LEDS];
 bool blackoutActive = false;
 bool ignoreBlackout[DMX_CHANNELS];
 uint8_t savedOut[DMX_CHANNELS];
@@ -90,6 +83,7 @@ uint32_t restartAt = 0;
 uint8_t baseR = 0, baseG = 0, baseB = 0;
 uint8_t flashR = 0, flashG = 0, flashB = 0;
 uint32_t flashUntil = 0;
+
 void ledApply(uint8_t r, uint8_t g, uint8_t b) {
   analogWrite(LED_R, 255 - r);
   analogWrite(LED_G, 255 - g);
@@ -118,6 +112,7 @@ void ledInit() {
   ledSetBase(0, 0, 0);
   ledApply(0, 0, 0);
 }
+
 void applyOutput();
 void recomputeScenes();
 void chaserTask();
@@ -146,7 +141,6 @@ void setDefaults(Config& c) {
   c.ap_only = 0;
   c.use_static_ip = 0;
   strncpy(c.nodeName, "ConsoleDMX", sizeof(c.nodeName) - 1);
-  c.led_color_order = 0; // 0=GRB, 1=RGB, 2=BGR
 }
 void loadConfig() {
   EEPROM.get(ADDR_CONFIG, cfg);
@@ -185,11 +179,6 @@ String chaserPresetPath(uint8_t idx) {
 String scenePath(uint8_t idx) {
   char buf[20];
   snprintf(buf, sizeof(buf), "/scenes/s%u.bin", idx);
-  return String(buf);
-}
-String haScenePath(uint8_t idx) {
-  char buf[20];
-  snprintf(buf, sizeof(buf), "/scenes/s_ha%u.json", idx);
   return String(buf);
 }
 String roboScenePath(uint8_t idx) {
@@ -414,6 +403,7 @@ void clearSceneFS(uint8_t idx) {
   sceneNonEmpty[idx] = 0;
   memset(sceneDataCache[idx], 0, DMX_CHANNELS);
 }
+
 void chaserTask() {
   if (!chaser_running) return;
   unsigned long now = millis();
@@ -476,18 +466,15 @@ void recomputeScenes() {
     }
   }
 }
+
 void setBlackout(bool enable) {
   if (enable && !blackoutActive) {
     memcpy(savedOut, outValues, DMX_CHANNELS);
     blackoutActive = true;
-    webSocket.broadcastTXT("ha_blackout:1");
-    FastLED.clear();
-    FastLED.show();
     ledFlash(0, 0, 255, 150);
     applyOutput();
   } else if (!enable && blackoutActive) {
     blackoutActive = false;
-    webSocket.broadcastTXT("ha_blackout:0");
     ledFlash(0, 255, 0, 150);
     applyOutput();
   }
@@ -497,14 +484,12 @@ void applyOutput() {
     uint8_t blackout_values[DMX_CHANNELS];
     memset(blackout_values, 0, DMX_CHANNELS);
 
-    // Handle "B" button passthrough first
     for (int i = 0; i < DMX_CHANNELS; i++) {
       if (ignoreBlackout[i]) {
         blackout_values[i] = savedOut[i];
       }
     }
 
-    // Then, handle live X/Y passthrough (overwriting if necessary)
     for (uint8_t i = 0; i < num_x_channels; i++) {
       uint16_t ch = xy_pad_x_channels[i].ch;
       if (ch > 0 && ch <= DMX_CHANNELS) {
@@ -530,11 +515,9 @@ void applyOutput() {
     for (int i = 0; i < DMX_CHANNELS; i++) {
       uint8_t base = faderValues[i];
       uint8_t v = max(base, scenesOut[i]);
-      if (haAssignedChannels[i]) { v = 0; }
       outValues[i] = v;
     }
   }
-  // Apply XY pad values
   for (uint8_t i = 0; i < num_x_channels; i++) {
     uint16_t ch = xy_pad_x_channels[i].ch;
     if (ch > 0 && ch <= DMX_CHANNELS) {
@@ -676,8 +659,6 @@ void sendInit(uint8_t num) {
   out += ",";
   out += String((int)blackoutActive);
   out += ",";
-  out += String((int)cfg.led_color_order);
-  out += ",";
   out += String((int)chaser_running);
   out += ",";
   out += String(chaser_bpm);
@@ -720,7 +701,6 @@ void sendInit(uint8_t num) {
     if (i < MAX_CHASER_PRESETS - 1) out += ",";
   }
   
-  // Add fader customizations
   StaticJsonDocument<4096> doc;
   JsonArray names = doc.createNestedArray("names");
   JsonArray colors = doc.createNestedArray("colors");
@@ -740,6 +720,7 @@ void sendInit(uint8_t num) {
 
   webSocket.sendTXT(num, out);
 }
+
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
   switch (type) {
     case WStype_CONNECTED:
@@ -804,7 +785,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
               Serial.printf("Chaser preset %d saved.\n", idx);
               if (!chaserPresetNonEmpty[idx]) {
                 chaserPresetNonEmpty[idx] = true;
-                // Maybe send an update to all clients? For now, not needed.
               }
             }
           }
@@ -828,27 +808,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           saveActiveChaser();
           return;
         }
-        if (msg.startsWith("ha_links:")) {
-          memset(haAssignedChannels, 0, sizeof(haAssignedChannels));
-          String linksStr = msg.substring(9);
-          int currentPos = 0;
-          int nextComma = -1;
-          while (currentPos < linksStr.length()) {
-            nextComma = linksStr.indexOf(',', currentPos);
-            if (nextComma == -1) {
-              nextComma = linksStr.length();
-            }
-            String chStr = linksStr.substring(currentPos, nextComma);
-            if (chStr.length() > 0) {
-              int ch = chStr.toInt();
-              if (ch >= 1 && ch <= DMX_CHANNELS) {
-                haAssignedChannels[ch - 1] = true;
-              }
-            }
-            currentPos = nextComma + 1;
-          }
-          return;
-        }
         if (msg == "hello") {
           sendInit(num);
           return;
@@ -857,23 +816,11 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           memset(faderValues, 0, sizeof(faderValues));
           applyOutput();
           pushFaders();
-          for (int i = 0; i < DMX_CHANNELS; i++) {
-            if (haAssignedChannels[i]) {
-              String msg = "ha_val:" + String(i + 1) + ":0";
-              webSocket.broadcastTXT(msg);
-            }
-          }
           return;
         }
         if (msg == "all_zero") {
           memset(faderValues, 0, sizeof(faderValues));
           pushFaders();
-          for (int i = 0; i < DMX_CHANNELS; i++) {
-            if (haAssignedChannels[i]) {
-              String msg = "ha_val:" + String(i + 1) + ":0";
-              webSocket.broadcastTXT(msg);
-            }
-          }
           memset(sceneLevels, 0, sizeof(sceneLevels));
           pushLevels();
           recomputeScenes();
@@ -950,13 +897,12 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
             if (ch >= 1 && ch <= DMX_CHANNELS) {
               faderValues[ch - 1] = (uint8_t)constrain(val, 0, 255);
               applyOutput();
-              // Broadcast the change to all clients
               webSocket.broadcastTXT(msg);
             }
           }
           return;
         }
-        if (msg.startsWith("set_name:")) { // format: set_name:ch:name
+        if (msg.startsWith("set_name:")) {
           int p1 = msg.indexOf(':', 9);
           if (p1 > 0) {
             int ch = msg.substring(9, p1).toInt();
@@ -969,7 +915,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           }
           return;
         }
-        if (msg.startsWith("set_color:")) { // format: set_color:ch:color
+        if (msg.startsWith("set_color:")) {
           int p1 = msg.indexOf(':', 10);
           if (p1 > 0) {
             int ch = msg.substring(10, p1).toInt();
@@ -986,12 +932,10 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           if(LittleFS.exists("/fader_customs.json")) {
             LittleFS.remove("/fader_customs.json");
           }
-          // Reset in-memory arrays to default
           for(int i=0; i<NUM_FADERS; i++) {
             faderNames[i] = "CH " + String(i+1);
             faderColors[i] = "#262626";
           }
-          // Tell clients to reload
           webSocket.broadcastTXT("reinit");
           return;
         }
@@ -1000,7 +944,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           setBlackout(en != 0);
           return;
         }
-        if (msg.startsWith("ignore_bo:")) { // ignore_bo:CH:STATE
+        if (msg.startsWith("ignore_bo:")) {
           int p1 = msg.indexOf(':', 10);
           if (p1 > 0) {
             int ch = msg.substring(10, p1).toInt();
@@ -1013,25 +957,13 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           }
           return;
         }
-        if (msg.startsWith("scene_save_full:")) { // scene_save_full:idx|ha_json|robo_json
+        if (msg.startsWith("scene_save_full:")) {
           int p1 = msg.indexOf('|', 16);
           int p2 = (p1 > 0) ? msg.indexOf('|', p1 + 1) : -1;
           if (p1 > 0 && p2 > 0) {
             int idx = msg.substring(16, p1).toInt();
             if (idx >= 0 && idx < MAX_SCENES) {
-              // 1. Save DMX fader values
               saveSceneToFS((uint8_t)idx, faderValues);
-              
-              // 2. Save HA JSON
-              String haJson = msg.substring(p1 + 1, p2);
-              String haP = haScenePath(idx);
-              File haF = LittleFS.open(haP, "w");
-              if (haF) {
-                haF.print(haJson);
-                haF.close();
-              }
-
-              // 3. Save Robo JSON
               String roboJson = msg.substring(p2 + 1);
               String roboP = roboScenePath(idx);
               File roboF = LittleFS.open(roboP, "w");
@@ -1039,7 +971,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
                 roboF.print(roboJson);
                 roboF.close();
               }
-
               recomputeScenes();
               applyOutput();
               pushSlots();
@@ -1050,9 +981,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
         if (msg.startsWith("scene_clear:")) {
           int idx = msg.substring(12).toInt();
           if (idx >= 0 && idx < MAX_SCENES) {
-            clearSceneFS((uint8_t)idx); // This now also clears robo file
-            String p = haScenePath(idx);
-            if (LittleFS.exists(p)) LittleFS.remove(p);
+            clearSceneFS((uint8_t)idx);
             sceneLevels[idx] = 0;
             recomputeScenes();
             applyOutput();
@@ -1065,19 +994,16 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           int idx = msg.substring(11).toInt();
           if (idx >= 0 && idx < MAX_SCENES) {
             if (sceneNonEmpty[idx]) {
-              // 1. Load and send DMX faders
               memcpy(faderValues, sceneDataCache[idx], DMX_CHANNELS);
               pushFaders();
               applyOutput();
-
-              // 2. Load and send Robo data if it exists
               String roboP = roboScenePath(idx);
               if (LittleFS.exists(roboP)) {
                 File roboF = LittleFS.open(roboP, "r");
                 if (roboF) {
                   String roboJson = roboF.readString();
                   roboF.close();
-                  if (roboJson.length() > 2) { // check for non-empty json
+                  if (roboJson.length() > 2) {
                     String payload = "robo_load:" + roboJson;
                     webSocket.sendTXT(num, payload);
                   }
@@ -1111,19 +1037,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
               recomputeScenes();
               applyOutput();
               pushLevels();
-              String p = haScenePath(idx);
-              if (LittleFS.exists(p)) {
-                File f = LittleFS.open(p, "r");
-                if (f) {
-                  String haJson = f.readString();
-                  f.close();
-                  if (haJson.length() > 2) {
-                    String payload = "ha_load:" + String(idx) + ":";
-                    payload += haJson;
-                    webSocket.broadcastTXT(payload);
-                  }
-                }
-              }
             }
           }
           return;
@@ -1183,20 +1096,11 @@ void startAP() {
 void setup() {
   Serial.begin(115200);
   delay(50);
-  Serial.println("\nBoot DMX Web + 12 Scenes + RGB LED + LittleFS + BLACKOUT");
+  Serial.println("\nBoot DMX Web + 12 Scenes");
   ledInit();
-  FastLED.setBrightness(255);
   ledSetBase(255, 0, 255);
   EEPROM.begin(EEPROM_SIZE);
   loadConfig();
-
-  switch (cfg.led_color_order) {
-    default:
-    case 0: FastLED.addLeds<LED_TYPE, LED_DATA_PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip); break;
-    case 1: FastLED.addLeds<LED_TYPE, LED_DATA_PIN, RGB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip); break;
-    case 2: FastLED.addLeds<LED_TYPE, LED_DATA_PIN, BGR>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip); break;
-  }
-
   if (!fsInit()) {
     Serial.println("FS init failed, formatting again…");
     LittleFS.format();
@@ -1209,7 +1113,6 @@ void setup() {
   memset(outValues, 0, sizeof(outValues));
   memset(sceneNonEmpty, 0, sizeof(sceneNonEmpty));
   memset(savedOut, 0, sizeof(savedOut));
-  memset(haAssignedChannels, 0, sizeof(haAssignedChannels));
   memset(chaser_out_values, 0, sizeof(chaser_out_values));
   memset(fade_from_values, 0, sizeof(fade_from_values));
   memset(fade_to_values, 0, sizeof(fade_to_values));
@@ -1245,9 +1148,6 @@ void setup() {
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
   Serial.println("WebSocket :81");
-
-  Serial.println("Protocole: DMX réseau désactivé.");
-
   Serial.println("Prêt.");
 }
 void loop() {

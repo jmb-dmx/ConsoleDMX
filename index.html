@@ -66,8 +66,6 @@
  .fader label{font-weight:700;font-size:.9em}
  .fader .val{font-family:ui-monospace,Menlo,monospace;color:var(--link-color);margin-top:4px}
  input[type="range"].v{-webkit-appearance:slider-vertical;writing-mode:vertical-lr;direction:rtl;width:22px;height:210px;cursor:pointer}
- .ha-select-wrap{ margin-top:6px; }
- .ha-select-wrap select { font-size:11px; max-width:62px; padding:2px; background:var(--select-bg); border-color:var(--select-border); }
  .row-separator { margin-top:20px; }
  .row-separator::before { content:""; width:100%; height:1px; background:var(--hr-bg); margin-bottom:12px; display:block; }
  .scenebar{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:22px;margin-bottom:10px}
@@ -405,31 +403,6 @@
       </form>
     </fieldset>
 
-    <!-- Section 3: Protocoles DMX -->
-    <fieldset style="margin-bottom: 20px;">
-        <legend data-i18n-key="dmx_protocols">Sortie DMX</legend>
-        <fieldset class="grid grid2" style="margin-bottom: 20px;">
-            <legend data-i18n-key="led_strip_output">Sortie LED Strip</legend>
-            <div>
-                <label class="inline" data-i18n-key="led_color_order">Ordre des couleurs (LEDs)</label>
-                <select id="ledColorOrder">
-                  <option value="0" data-i18n-key="led_order_grb">GRB</option>
-                  <option value="1" data-i18n-key="led_order_rgb">RGB</option>
-                  <option value="2" data-i18n-key="led_order_bgr">BGR</option>
-                </select>
-            </div>
-             <small style="opacity:.7;grid-column:1/-1">Sauvegarder avec le bouton "Enregistrer & Redémarrer" de la section Wi-Fi.</small>
-        </fieldset>
-        <fieldset class="grid grid2"><legend data-i18n-key="ha_integration">Home Assistant</legend>
-        <div><label class="inline" data-i18n-key="enable_ha">Activer Home Assistant</label><input type="checkbox" id="haEnabled" onchange="toggleHASettings()"></div>
-        <div id="haConfigFields" style="display:none; grid-column:1/-1; margin-top:10px;" class="grid grid2">
-          <div><label class="inline" data-i18n-key="ha_url">URL Home Assistant</label><input type="text" id="haUrl" placeholder="http://homeassistant.local:8123"></div>
-          <div><label class="inline" data-i18n-key="ha_token">Token longue durée</label><input type="password" id="haToken"></div>
-          <div style="grid-column:1/-1"><button class="btn primary" onclick="saveHASettings()" data-i18n-key="ha_save_and_search">Enregistrer & Chercher les lumières</button></div>
-        </div>
-      </fieldset>
-    </fieldset>
-
     <!-- Section 4: Zone de Danger -->
     <div style="margin-top:24px">
       <fieldset><legend data-i18n-key="danger_zone">Zone de Danger</legend>
@@ -465,14 +438,8 @@ const translations = {
     clear: "CLEAR",
     scene_label: "Scène:",
     // Settings page
-    led_color_order: "Ordre des couleurs (LEDs)",
-    led_order_grb: "GRB",
-    led_order_rgb: "RGB",
-    led_order_bgr: "BGR",
     display_settings: "Affichage",
     network_settings: "Réseau",
-    dmx_protocols: "Sortie DMX",
-    led_strip_output: "Sortie LED Strip",
     wifi_network: "Réseau Wi-Fi",
     ssid: "SSID",
     password: "Mot de passe",
@@ -482,15 +449,6 @@ const translations = {
     static_ip: "Adresse IP",
     static_subnet: "Sous-réseau",
     static_gateway: "Passerelle",
-    espnow_mode: "Mode ESP-NOW",
-    espnow_channel: "Canal (0=auto)",
-    espnow_intensity_only: "Intensité seulement",
-    apply_and_restart: "Appliquer & Redémarrer",
-    ha_integration: "Home Assistant",
-    enable_ha: "Activer Home Assistant",
-    ha_url: "URL Home Assistant",
-    ha_token: "Token longue durée",
-    ha_save_and_search: "Enregistrer & Chercher les lumières",
     danger_zone: "Zone de Danger",
     danger_zone_note: "Efface la configuration réseau, les scènes et les niveaux.",
     factory_reset: "Remise d’usine",
@@ -498,8 +456,6 @@ const translations = {
     reboot_button: "Reboot",
     current_ip: "IP actuelle:",
     // Select options
-    enabled: "Activé",
-    disabled: "Désactivé",
     ap_no: "Non (STA si possible)",
     ap_yes: "Oui (forcer AP)",
     theme_dark: "Sombre",
@@ -545,11 +501,6 @@ const translations = {
     confirm_clear_scene: "Effacer scène {n} ?",
     dmx_channels_reset: "Canaux DMX remis à 0",
     scenes_and_dmx_reset: "Scènes et canaux DMX remis à 0",
-    ha_url_token_required: "URL et Token Home Assistant sont requis",
-    ha_found_lights: "Trouvé {n} lumières Home Assistant",
-    ha_connection_error: "Erreur connexion HA. ",
-    ha_check_url_cors: "Vérifiez l'URL et la config CORS de HA.",
-    ha_send_error: "Erreur envoi HA",
     factory_reset_confirm: "CONFIRMER LA REMISE D'USINE ? Cette action est irréversible.",
     reboot_confirm: "CONFIRMER LE REDÉMARRAGE ?",
     language: "Langue",
@@ -572,14 +523,8 @@ const translations = {
     clear: "CLEAR",
     scene_label: "Scene:",
      // Settings page
-    led_color_order: "Color Order (LEDs)",
-    led_order_grb: "GRB",
-    led_order_rgb: "RGB",
-    led_order_bgr: "BGR",
     display_settings: "Display",
     network_settings: "Network",
-    dmx_protocols: "DMX Output",
-    led_strip_output: "LED Strip Output",
     wifi_network: "Wi-Fi Network",
     ssid: "SSID",
     password: "Password",
@@ -589,15 +534,6 @@ const translations = {
     static_ip: "IP Address",
     static_subnet: "Subnet",
     static_gateway: "Gateway",
-    espnow_mode: "ESP-NOW Mode",
-    espnow_channel: "Channel (0=auto)",
-    espnow_intensity_only: "Intensity only",
-    apply_and_restart: "Apply & Restart",
-    ha_integration: "Home Assistant",
-    enable_ha: "Enable Home Assistant",
-    ha_url: "Home Assistant URL",
-    ha_token: "Long-Lived Token",
-    ha_save_and_search: "Save & Discover Lights",
     danger_zone: "Danger Zone",
     danger_zone_note: "Erases network configuration, scenes, and levels.",
     factory_reset: "Factory Reset",
@@ -605,8 +541,6 @@ const translations = {
     reboot_button: "Reboot",
     current_ip: "Current IP:",
     // Select options
-    enabled: "Enabled",
-    disabled: "Disabled",
     ap_no: "No (STA if possible)",
     ap_yes: "Yes (force AP)",
     theme_dark: "Dark",
@@ -652,11 +586,6 @@ const translations = {
     confirm_clear_scene: "Clear scene {n}?",
     dmx_channels_reset: "DMX channels reset to 0",
     scenes_and_dmx_reset: "Scenes and DMX channels reset to 0",
-    ha_url_token_required: "Home Assistant URL and Token are required",
-    ha_found_lights: "Found {n} Home Assistant lights",
-    ha_connection_error: "HA connection error. ",
-    ha_check_url_cors: "Check HA URL and CORS config.",
-    ha_send_error: "HA send error",
     factory_reset_confirm: "CONFIRM FACTORY RESET? This action is irreversible.",
     reboot_confirm: "CONFIRM REBOOT?",
     language: "Language",
@@ -774,7 +703,6 @@ let blackoutActive=false;
 let clearClicks = 0;
 let clearClickTimer = null;
 const CLEAR_CLICK_DELAY = 300;
-let preBlackoutHAState = {};
 let faderCustoms = { names: [], colors: [] };
 let sceneFaderLevels = new Array(12).fill(0);
 let sceneSaveTimer = null;
@@ -871,13 +799,6 @@ function mkFader(i){
               <div class="fader-color-picker-wrapper">
                 <input type="color" id="color-picker-${i}" class="fader-color-picker" value="${faderColor}">
               </div>`;
-  if (haSettings.enabled) {
-    html += `<div class="ha-select-wrap">
-               <select id="ha-ch${i}" onchange="onHASelect(${i})">
-                 <option value="">-- Aucune --</option>
-               </select>
-             </div>`;
-  }
   d.innerHTML = html;
 
   const xyAssignDiv = document.createElement('div');
@@ -1005,13 +926,6 @@ function onSlide(ch){
   const val = s.value;
   v.textContent = val;
   if(ws && ws.readyState===1) ws.send(`set:${ch}:${val}`);
-
-  if (haSettings.enabled) {
-    const haEntity = faderHALinks[ch];
-    if (haEntity) {
-      callHA(haEntity, val);
-    }
-  }
 }
 function onSceneSlide(idx) {
     const slider = document.getElementById('sid' + idx);
@@ -1063,18 +977,8 @@ function onSlotPress(n){
 
   // 1. REC mode takes precedence
   if(recArmed){
-    let haSceneState = {};
-    if (haSettings.enabled) {
-      for (const ch in faderHALinks) {
-        const entityId = faderHALinks[ch];
-        const slider = document.getElementById('ch' + ch);
-        if (entityId && slider) {
-          haSceneState[entityId] = parseInt(slider.value, 10);
-        }
-      }
-    }
     const roboState = JSON.stringify(xyPad);
-    ws && ws.readyState===1 && ws.send(`scene_save_full:${sceneIdx}|${JSON.stringify(haSceneState)}|${roboState}`);
+    ws && ws.readyState===1 && ws.send(`scene_save_full:${sceneIdx}|{}|${roboState}`);
     recArmed=false;
     recBtn.classList.remove('armed');
     editingSceneIndex = null; // Exit edit mode after REC save
@@ -1098,18 +1002,8 @@ function onSlotPress(n){
 
   // 3. If clicking the scene that is already being edited, SAVE it.
   if (editingSceneIndex === sceneIdx) {
-    let haSceneState = {};
-    if (haSettings.enabled) {
-      for (const ch in faderHALinks) {
-        const entityId = faderHALinks[ch];
-        const slider = document.getElementById('ch' + ch);
-        if (entityId && slider) {
-          haSceneState[entityId] = parseInt(slider.value, 10);
-        }
-      }
-    }
     const roboState = JSON.stringify(xyPad);
-    ws && ws.readyState===1 && ws.send(`scene_save_full:${sceneIdx}|${JSON.stringify(haSceneState)}|${roboState}`);
+    ws && ws.readyState===1 && ws.send(`scene_save_full:${sceneIdx}|{}|${roboState}`);
     editingSceneIndex = null; // Exit edit mode
 
     // Per user request, reset faders to 0 after saving a modification.
@@ -1156,164 +1050,6 @@ function updateSlotClasses(){
   }
 }
 function sanitizeName(s){ return (s||"").replace(/[|,:]/g," ").trim().slice(0,31); }
-let haSettings = { enabled: false, url: '', token: '' };
-let haLights = [];
-let faderHALinks = {};
-
-function sendHALinks() {
-  if (!ws || ws.readyState !== 1) return;
-  const linkedChannels = Object.keys(faderHALinks);
-  ws.send(`ha_links:${linkedChannels.join(',')}`);
-}
-
-function rebuildFadersUI() {
-  // The new buildUI handles clearing and rebuilding everything.
-  buildUI();
-  // We need to re-apply the DMX values from the server after rebuilding the UI
-  if(ws && ws.readyState===1) ws.send('hello');
-  // Also re-populate the HA selectors if needed
-  repopulateFaderHASelectors();
-}
-
-function toggleHASettings() {
-  const isEnabled = document.getElementById('haEnabled').checked;
-  document.getElementById('haConfigFields').style.display = isEnabled ? 'grid' : 'none';
-  haSettings.enabled = isEnabled;
-  localStorage.setItem('haSettings', JSON.stringify(haSettings));
-
-  if (!isEnabled) {
-    haLights = [];
-    faderHALinks = {};
-    localStorage.removeItem('faderHALinks');
-  }
-  rebuildFadersUI();
-  sendHALinks();
-}
-
-function saveHASettings() {
-  const url = document.getElementById('haUrl').value.trim();
-  const token = document.getElementById('haToken').value.trim();
-
-  haSettings.url = url;
-  haSettings.token = token;
-
-  if (haSettings.enabled && (!url || !token)) {
-    toast(t('ha_url_token_required'));
-    return;
-  }
-
-  localStorage.setItem('haSettings', JSON.stringify(haSettings));
-  if (haSettings.enabled) {
-    fetchHALights();
-  }
-}
-
-function loadHASettings() {
-  const saved = localStorage.getItem('haSettings');
-  if (saved) {
-    haSettings = JSON.parse(saved);
-    const haEnabledCheckbox = document.getElementById('haEnabled');
-    haEnabledCheckbox.checked = haSettings.enabled;
-    document.getElementById('haConfigFields').style.display = haSettings.enabled ? 'grid' : 'none';
-    document.getElementById('haUrl').value = haSettings.url || '';
-    document.getElementById('haToken').value = haSettings.token || '';
-  }
-
-  if (haSettings.enabled) {
-    const savedLinks = localStorage.getItem('faderHALinks');
-    if (savedLinks) {
-      faderHALinks = JSON.parse(savedLinks);
-    }
-    // We need to rebuild the UI *before* fetching lights and populating them
-    rebuildFadersUI();
-    fetchHALights();
-  }
-}
-
-async function fetchHALights() {
-  if (!haSettings.enabled || !haSettings.url || !haSettings.token) return;
-  try {
-    const url = haSettings.url.replace(/\/+$/, ''); // Supprimer les slashs en fin d'URL
-    const response = await fetch(`${url}/api/states`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${haSettings.token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status}`);
-    }
-    const data = await response.json();
-    haLights = data.filter(e => e.entity_id.startsWith('light.')).map(e => ({
-      id: e.entity_id,
-      name: e.attributes.friendly_name || e.entity_id
-    }));
-    haLights.sort((a, b) => a.name.localeCompare(b.name));
-    toast(t('ha_found_lights', {n: haLights.length}));
-    repopulateFaderHASelectors();
-  } catch (error) {
-    console.error(t('ha_connection_error'), error);
-    let errorMsg = t('ha_connection_error');
-    if (error instanceof TypeError) { // Likely a network or CORS error
-      errorMsg += t('ha_check_url_cors');
-    } else {
-      errorMsg += error.message;
-    }
-    toast(errorMsg);
-    haLights = [];
-    repopulateFaderHASelectors();
-  }
-}
-
-function repopulateFaderHASelectors() {
-  if (!haSettings.enabled) return;
-  for (let i = 1; i <= TOTAL_FADERS; i++) {
-    const select = document.getElementById(`ha-ch${i}`);
-    if (!select) continue;
-    select.innerHTML = '<option value="">-- Aucune --</option>';
-    haLights.forEach(light => {
-      const opt = document.createElement('option');
-      opt.value = light.id;
-      opt.textContent = light.name;
-      select.appendChild(opt);
-    });
-    select.value = faderHALinks[i] || '';
-  }
-}
-
-function onHASelect(ch) {
-  const select = document.getElementById(`ha-ch${ch}`);
-  if (select.value) {
-    faderHALinks[ch] = select.value;
-  } else {
-    delete faderHALinks[ch];
-  }
-  localStorage.setItem('faderHALinks', JSON.stringify(faderHALinks));
-  sendHALinks();
-}
-
-function callHA(entityId, value) {
-  if (!haSettings.enabled || !haSettings.url || !haSettings.token || !entityId) return;
-  const url = haSettings.url.replace(/\/+$/, ''); // Supprimer les slashs en fin d'URL
-  const service = value > 0 ? 'turn_on' : 'turn_off';
-  const body = { entity_id: entityId };
-  if (service === 'turn_on') {
-    body.brightness = value;
-  }
-
-  fetch(`${url}/api/services/light/${service}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${haSettings.token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  }).catch(error => {
-    console.error(t('ha_send_error'), error);
-    toast(t('ha_send_error'));
-  });
-}
 
 /* BLACKOUT */
 function setBlackoutUI(en){
@@ -1330,7 +1066,6 @@ function initWS(){
   ws=new WebSocket(WS);
   ws.onopen = ()=> {
     ws.send('hello');
-    sendHALinks();
   };
   ws.onclose = ()=> setTimeout(initWS,1500);
   ws.onmessage = (e)=>{
@@ -1367,13 +1102,12 @@ function initWS(){
       const cps = (parts.length > 4) ? (parts[4]||'').split(',') : [];
 
       // --- Store all data in global variables ---
-      if(meta.length >= 10){
-        // ip[0], ap_only[1], nodeName[2], use_static_ip[3], static_ip[4], static_subnet[5], static_gateway[6], blackoutActive[7], led_color_order[8], chaser_running[9]
+      if(meta.length >= 8){
         blackoutActive = (meta[7] === '1');
-        chaserRunning = (+meta[9] === 1);
+        chaserRunning = (+meta[8] === 1);
 
-        if(meta.length >= 22) { // 10 base + 3 chaser params + 8 scenes + 1 xy
-            const xy_data = meta[21] || '';
+        if(meta.length >= 21) {
+            const xy_data = meta[20] || '';
             const xy_parts = xy_data.split('&');
             xyPad.x_channels = (xy_parts[0] || '').split(',').filter(s => s.length > 0).map(item => {
                 const inverted = item.endsWith('i');
@@ -1475,27 +1209,6 @@ function initWS(){
       }
       return;
     }
-    if (t.startsWith('ha_blackout:')) {
-      const isBlackout = t.substring(12) === '1';
-      if (isBlackout) {
-        preBlackoutHAState = {}; // Clear previous state
-        for (const ch in faderHALinks) {
-          const entityId = faderHALinks[ch];
-          const slider = document.getElementById('ch' + ch);
-          if (entityId && slider) {
-            preBlackoutHAState[entityId] = parseInt(slider.value, 10);
-            callHA(entityId, 0); // Turn off light
-          }
-        }
-      } else { // Blackout is turning off
-        for (const entityId in preBlackoutHAState) {
-          const value = preBlackoutHAState[entityId];
-          callHA(entityId, value); // Restore light level
-        }
-        preBlackoutHAState = {}; // Clear state
-      }
-      return;
-    }
     if (t.startsWith('levels:')){
       const lv=t.substring(7).split(',');
       for(let i=0;i<lv.length;i++){ const idx=i+1, s=document.getElementById('sid'+idx), v=document.getElementById('slv'+idx); if(s) s.value=lv[i]; if(v) v.textContent=lv[i]; }
@@ -1509,47 +1222,6 @@ function initWS(){
       }
       return;
     }
-    if (t.startsWith('ha_load:')) {
-      const parts = t.substring(8).split(':');
-      if (parts.length < 2) return;
-      const sceneIdx = parseInt(parts[0], 10);
-      const haJson = parts.slice(1).join(':');
-
-      if (isNaN(sceneIdx) || sceneIdx < 0 || sceneIdx >= 12) return;
-
-      const sceneLevel = sceneFaderLevels[sceneIdx];
-
-      try {
-        const haSceneState = JSON.parse(haJson);
-        for (const entityId in haSceneState) {
-          if (Object.hasOwnProperty.call(haSceneState, entityId)) {
-            const savedValue = parseInt(haSceneState[entityId], 10);
-            const scaledValue = Math.round((savedValue * sceneLevel) / 255);
-
-            callHA(entityId, scaledValue);
-
-            // Update the UI fader for the corresponding channel
-            for (const ch in faderHALinks) {
-              if (faderHALinks[ch] === entityId) {
-                const slider = document.getElementById('ch' + ch);
-                const valueDisplay = document.getElementById('val' + ch);
-                if (slider) slider.value = scaledValue;
-                if (valueDisplay) valueDisplay.textContent = scaledValue;
-                if (slider) slider.value = value;
-                if (valueDisplay) valueDisplay.textContent = value;
-                if (ws && ws.readyState === 1) {
-                  ws.send(`set:${ch}:${value}`);
-                }
-                break;
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Failed to parse HA scene JSON", e);
-      }
-      return;
-    }
     if (t.startsWith('set:')) {
       const parts = t.substring(4).split(':');
       if (parts.length === 2) {
@@ -1559,24 +1231,6 @@ function initWS(){
         const valueDisplay = document.getElementById('val' + ch);
         if (slider) slider.value = val;
         if (valueDisplay) valueDisplay.textContent = val;
-      }
-      return;
-    }
-    if (t.startsWith('ha_val:')) {
-      const parts = t.substring(7).split(':');
-      if (parts.length === 2) {
-        const ch = parseInt(parts[0], 10);
-        const val = parseInt(parts[1], 10);
-        if (haSettings.enabled) {
-          const entityId = faderHALinks[ch];
-          if (entityId) {
-            callHA(entityId, val);
-            const slider = document.getElementById('ch' + ch);
-            const valueDisplay = document.getElementById('val' + ch);
-            if (slider) slider.value = val;
-            if (valueDisplay) valueDisplay.textContent = val;
-          }
-        }
       }
       return;
     }
@@ -2067,7 +1721,6 @@ window.addEventListener('load', ()=>{
   const savedTheme = localStorage.getItem('dmxConsoleTheme') || 'dark';
   document.getElementById('themeSelector').value = savedTheme;
   setTheme(savedTheme);
-  loadHASettings();
 
   // Defer building the main UI until we have data from the server
   const buildInterval = setInterval(() => {
@@ -2091,24 +1744,22 @@ window.addEventListener('load', ()=>{
         if(s) s.value=sceneFaderLevels[i]; if(v) v.textContent=sceneFaderLevels[i];
       }
       
-      if(meta.length >= 10){
+      if(meta.length >= 8){
         curip.textContent=meta[0];
         const aponlyEl=document.getElementById('aponly'); if(aponlyEl) aponlyEl.value=+meta[1];
-        // nodeName is not sent anymore, but we can leave the input field for other purposes or remove it. For now, do nothing.
         const useStaticCheck = document.getElementById('use_static_ip');
         if (useStaticCheck) useStaticCheck.checked = (+meta[3] === 1);
         document.getElementById('static_ip').value = meta[4] || '';
         document.getElementById('static_subnet').value = meta[5] || '';
         document.getElementById('static_gateway').value = meta[6] || '';
-        const lco = document.getElementById('ledColorOrder'); if(lco) lco.value = +meta[8];
 
-        if(meta.length >= 22){
-          chaserBPM.value = meta[10];
-          chaserFade.value = meta[11];
-          chaserDuration.value = meta[12];
+        if(meta.length >= 13){
+          chaserBPM.value = meta[9];
+          chaserFade.value = meta[10];
+          chaserDuration.value = meta[11];
           for(let i=0; i<8; i++){
             const sel = document.getElementById(`chaserS${i+1}`);
-            if (sel) sel.value = (+meta[13+i] > 12) ? -1 : +meta[13+i];
+            if (sel) sel.value = (+meta[12+i] > 12) ? -1 : +meta[12+i];
           }
         }
       }
