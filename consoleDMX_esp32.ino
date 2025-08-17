@@ -68,6 +68,7 @@ WebSocketsServer webSocket(81);
 DNSServer dnsServer;
 ArtnetWiFi artnet;
 ESPAsyncE131 sacn(1); // Listen for 1 universe
+e131_packet_t packet; // For sACN packet handling
 Preferences preferences;
 bool wifiAPMode = false;
 uint32_t restartAt = 0;
@@ -285,9 +286,6 @@ void chaserTask() {
 }
 
 // ... other logic functions will be ported later
-
-void recomputeScenes() {
-  memset(scenesOut, 0, DMX_CHANNELS);
   for (int s = 0; s < MAX_SCENES; s++) {
     if (sceneLevels[s] == 0) continue;
 
@@ -406,7 +404,7 @@ void setup() {
       artnet.begin();
       artnet.setArtPollReplyConfigShortName(String(cfg.nodeName));
       artnet.setArtPollReplyConfigLongName(String(cfg.nodeName));
-      artnet.setArtDmxCallback(onArtNetDmx);
+      artnet.setArtDmxData(onArtNetDmx);
       Serial.println("Protocol: Art-Net enabled.");
       break;
     case 2: // sACN
@@ -498,18 +496,18 @@ void loop() {
   if (cfg.dmx_protocol == 1) {
     artnet.parse();
   } else if (cfg.dmx_protocol == 2) {
-    while (sacn.parse(&packet)) {
-      if (packet.universe == cfg.universe) {
-        for (int i = 0; i < packet.property_value_count - 1 && i < DMX_CHANNELS; i++) {
-          uint8_t val = packet.property_values[i + 1];
-          if (val != artnetValues[i] && haAssignedChannels[i]) {
-            String msg = "ha_val:" + String(i + 1) + ":" + String(val);
-            webSocket.broadcastTXT(msg);
-          }
-          artnetValues[i] = val;
+    if (sacn.parsePacket(&packet)) {
+        if (packet.universe == cfg.universe) {
+            for (int i = 0; i < packet.property_value_count - 1 && i < DMX_CHANNELS; i++) {
+                uint8_t val = packet.property_values[i + 1];
+                if (val != artnetValues[i] && haAssignedChannels[i]) {
+                    String msg = "ha_val:" + String(i + 1) + ":" + String(val);
+                    webSocket.broadcastTXT(msg);
+                }
+                artnetValues[i] = val;
+            }
+            applyOutput();
         }
-        applyOutput();
-      }
     }
   }
 
@@ -811,26 +809,6 @@ void saveFaderCustoms() {
     Serial.println("Fader customizations saved.");
   } else {
     Serial.println("Failed to save fader customs.");
-  }
-}
-
-void loadFaderCustoms() {
-  File f = LittleFS.open("/fader_customs.json", "r");
-  if (f) {
-    StaticJsonDocument<4096> doc;
-    DeserializationError error = deserializeJson(doc, f);
-    if (!error) {
-      JsonArray names = doc["names"];
-      JsonArray colors = doc["colors"];
-      for (int i = 0; i < NUM_FADERS && i < names.size() && i < colors.size(); i++) {
-        faderNames[i] = names[i].as<String>();
-        faderColors[i] = colors[i].as<String>();
-      }
-      Serial.println("Fader customizations loaded.");
-    } else {
-      Serial.printf("Failed to parse fader customs: %s\n", error.c_str());
-    }
-    f.close();
   }
 }
 
