@@ -1236,7 +1236,6 @@ void loop() {
   server.handleClient();
   webSocket.loop();
   chaserTask();
-  MDNS.update();
   ledTask();
   if (restartAt && millis() > restartAt) {
     Serial.println("Redémarrage demandé...");
