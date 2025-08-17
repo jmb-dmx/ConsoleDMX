@@ -15,11 +15,6 @@ const int dmx_tx_pin = 17;
 const int dmx_rx_pin = 16;
 const int dmx_rts_pin = 21;
 
-// Status LED
-#define LED_R 25
-#define LED_G 26
-#define LED_B 27
-
 // TTGO T-Display
 TFT_eSPI tft = TFT_eSPI();
 
@@ -89,44 +84,51 @@ String faderColors[NUM_FADERS];
 Config cfg;
 bool wifiAPMode = false;
 uint32_t restartAt = 0;
-uint8_t baseR = 0, baseG = 0, baseB = 0;
-uint8_t flashR = 0, flashG = 0, flashB = 0;
-uint32_t flashUntil = 0;
 
-void ledApply(uint8_t r, uint8_t g, uint8_t b) {
-  // ESP32 does not have analogWrite on all pins, this might need a different implementation
-  // For now, we assume it's okay.
-  // analogWrite(LED_R, 255 - r);
-  // analogWrite(LED_G, 255 - g);
-  // analogWrite(LED_B, 255 - b);
+// ---- Screen Status Color System ----
+uint16_t baseBgColor = TFT_BLACK;
+uint16_t flashBgColor = TFT_BLACK;
+uint32_t flashEndMillis = 0;
+
+void setStatusColor(uint8_t r, uint8_t g, uint8_t b) {
+    baseBgColor = tft.color565(r, g, b);
 }
-void ledSetBase(uint8_t r, uint8_t g, uint8_t b) {
-  baseR = r;
-  baseG = g;
-  baseB = b;
+
+void flashStatusColor(uint8_t r, uint8_t g, uint8_t b, uint16_t ms) {
+    flashBgColor = tft.color565(r, g, b);
+    flashEndMillis = millis() + ms;
 }
-void ledFlash(uint8_t r, uint8_t g, uint8_t b, uint16_t ms) {
-  flashR = r;
-  flashG = g;
-  flashB = b;
-  flashUntil = millis() + ms;
-}
-void ledTask() {
-  if (millis() < flashUntil) ledApply(flashR, flashG, flashB);
-  else ledApply(baseR, baseG, baseB);
-}
-void ledInit() {
-  pinMode(LED_R, OUTPUT);
-  pinMode(LED_G, OUTPUT);
-  pinMode(LED_B, OUTPUT);
-  ledSetBase(0, 0, 0);
-  ledApply(0, 0, 0);
+
+void statusDisplayTask() {
+    static uint16_t lastColor = 0xFFFF; // Force initial update
+    uint32_t now = millis();
+
+    uint16_t targetColor = (now < flashEndMillis) ? flashBgColor : baseBgColor;
+
+    if (targetColor != lastColor) {
+        lastColor = targetColor;
+
+        // Determine contrasting text color based on background brightness
+        uint8_t r8 = (targetColor >> 11) & 0x1F;
+        uint8_t g8 = (targetColor >> 5) & 0x3F;
+        uint8_t b8 = targetColor & 0x1F;
+        // Scale to 8-bit for brightness calculation
+        r8 = (r8 * 255) / 31;
+        g8 = (g8 * 255) / 63;
+        b8 = (b8 * 255) / 31;
+        // Luma formula for perceived brightness
+        uint16_t brightness = (r8 * 299 + g8 * 587 + b8 * 114) / 1000;
+        uint16_t textColor = (brightness > 128) ? TFT_BLACK : TFT_WHITE;
+
+        tft.fillScreen(targetColor);
+        tft.setTextColor(textColor, targetColor);
+
+        updateDisplay(); // Redraw the text content
+    }
 }
 
 void updateDisplay() {
-  tft.fillScreen(TFT_BLACK);
   tft.setCursor(0, 0);
-  tft.setTextColor(TFT_WHITE,TFT_BLACK);
   tft.setTextSize(2);
   tft.println("ConsoleDMX");
   tft.setTextSize(1);
@@ -492,11 +494,11 @@ void setBlackout(bool enable) {
   if (enable && !blackoutActive) {
     memcpy(savedOut, outValues, DMX_CHANNELS);
     blackoutActive = true;
-    ledFlash(0, 0, 255, 150);
+    flashStatusColor(0, 0, 255, 150);
     applyOutput();
   } else if (!enable && blackoutActive) {
     blackoutActive = false;
-    ledFlash(0, 255, 0, 150);
+    flashStatusColor(0, 255, 0, 150);
     applyOutput();
   }
 }
@@ -626,7 +628,7 @@ void handleFactoryReset() {
   blackoutActive = false;
   recomputeScenes();
   applyOutput();
-  ledFlash(255, 0, 0, 400);
+  flashStatusColor(255, 0, 0, 400);
   server.send(200, "text/html",
               "<html><body><h3>Remise d’usine effectuée. Redémarrage…</h3>"
               "<script>setTimeout(()=>location.href='/',3000)</script></body></html>");
@@ -750,7 +752,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
       {
         IPAddress ip = webSocket.remoteIP(num);
         Serial.printf("[%u] Connecté depuis %s\n", num, ip.toString().c_str());
-        ledFlash(255, 255, 255, 120);
+        flashStatusColor(255, 255, 255, 120);
         sendInit(num);
       }
       break;
@@ -1141,13 +1143,13 @@ bool tryWiFiSTA(uint32_t timeoutMs) {
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < timeoutMs) {
     delay(300);
     Serial.print(".");
-    ledTask();
+    statusDisplayTask();
   }
   Serial.println();
   if (WiFi.status() == WL_CONNECTED) {
     wifiAPMode = false;
     Serial.printf("STA OK, IP: %s\n", WiFi.localIP().toString().c_str());
-    ledSetBase(0, 255, 0);
+    setStatusColor(0, 255, 0);
     return true;
   }
   Serial.println("STA échec.");
@@ -1160,19 +1162,18 @@ void startAP() {
   WiFi.softAP(ap.c_str(), "dmx12345");
   IPAddress ip = WiFi.softAPIP();
   Serial.printf("AP \"%s\" démarré. IP: %s\n", ap.c_str(), ip.toString().c_str());
-  ledSetBase(0, 0, 255);
+  setStatusColor(0, 0, 255);
 }
 void setup() {
   Serial.begin(115200);
   delay(50);
   Serial.println("\nBoot DMX Web + 12 Scenes");
-  ledInit();
   tft.init();
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
   tft.println("Booting...");
 
-  ledSetBase(255, 0, 255);
+  setStatusColor(255, 0, 255);
   EEPROM.begin(EEPROM_SIZE);
   loadConfig();
   if (!fsInit()) {
@@ -1229,14 +1230,14 @@ void setup() {
   webSocket.onEvent(webSocketEvent);
   Serial.println("WebSocket :81");
 
-  updateDisplay();
+  statusDisplayTask(); // Initial draw
   Serial.println("Prêt.");
 }
 void loop() {
   server.handleClient();
   webSocket.loop();
   chaserTask();
-  ledTask();
+  statusDisplayTask();
   if (restartAt && millis() > restartAt) {
     Serial.println("Redémarrage demandé...");
     delay(100);
