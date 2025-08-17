@@ -382,7 +382,7 @@
     <!-- Section 2: Réseau -->
     <fieldset style="margin-bottom: 20px;">
       <legend data-i18n-key="network_settings">Réseau</legend>
-      <form method="POST" action="/wifi" style="margin-top:0; margin-bottom: 20px;" onsubmit="applyProtocolSettings(); applyEspnowSettings();">
+      <form method="POST" action="/wifi" style="margin-top:0; margin-bottom: 20px;">
         <fieldset class="grid grid2"><legend data-i18n-key="wifi_network">Réseau Wi-Fi</legend>
           <div><label class="inline" data-i18n-key="ssid">SSID</label><input name="ssid" id="wssid" maxlength="31"></div>
           <div><label class="inline" data-i18n-key="password">Mot de passe</label><input name="pass" id="wpass" maxlength="63"></div>
@@ -403,43 +403,24 @@
           <div style="grid-column:1/-1; margin-top:16px;"><button class="btn primary" type="submit" data-i18n-key="save_and_restart">Enregistrer & Redémarrer</button></div>
         </fieldset>
       </form>
-      <fieldset class="grid grid2"><legend data-i18n-key="espnow_mode">ESP-NOW</legend>
-        <div><label class="inline" data-i18n-key="espnow_mode">Mode</label><select id="espnowMode"><option value="0" data-i18n-key="espnow_off">Désactivé</option><option value="1" data-i18n-key="espnow_master">Maître (Émetteur)</option><option value="2" data-i18n-key="espnow_slave">Esclave (Récepteur)</option></select></div>
-        <div><label class="inline" data-i18n-key="espnow_channel">Canal (0=auto)</label><input type="number" id="espnowChannel" min="0" max="14" value="1"></div>
-        <div style="grid-column: 1 / -1;"><label class="inline" data-i18n-key="espnow_intensity_only">Intensité seulement</label><input type="checkbox" id="espnowIntensityOnly" style="width:20px;height:20px;vertical-align:middle;"></div>
-      </fieldset>
     </fieldset>
 
     <!-- Section 3: Protocoles DMX -->
     <fieldset style="margin-bottom: 20px;">
-      <legend data-i18n-key="dmx_protocols">Protocoles DMX</legend>
-      <fieldset class="grid grid2" style="margin-bottom: 20px;"><legend data-i18n-key="net_dmx_settings">DMX sur IP (Art-Net/sACN)</legend>
-        <div>
-          <label class="inline" data-i18n-key="protocol">Protocole</label>
-          <select id="dmxProtocol" onchange="updateProtocolUI()">
-            <option value="0" data-i18n-key="disabled">Désactivé</option>
-            <option value="1" data-i18n-key="artnet">Art-Net</option>
-            <option value="2" data-i18n-key="sacn">sACN (E1.31)</option>
-            <option value="3" data-i18n-key="usbdmx">USB DMX (OpenDMX)</option>
-          </select>
-        </div>
-        <div><label class="inline" data-i18n-key="universe">Univers</label><input type="number" id="univ" min="0" max="255"></div>
-        <div><label class="inline" data-i18n-key="priority">Priorité</label><select id="prio"><option value="0" data-i18n-key="prio_faders">Faders</option><option value="1" data-i18n-key="prio_net">DMX sur IP</option><option value="2" data-i18n-key="prio_htp">Fusion HTP (max)</option></select></div>
-        <div id="artnetNodeNameRow"><label class="inline" data-i18n-key="node_name">Nom du node Art-Net</label><input type="text" id="nodeName" maxlength="31" data-i18n-placeholder-key="node_name_placeholder" placeholder="ConsoleDMX"></div>
-        <hr style="grid-column: 1 / -1; border-color: var(--fieldset-border); margin: 10px 0 6px;">
-        <div><label class="inline" style="font-weight:700;" data-i18n-key="led_strip_output">Sortie LED Strip (Art-Net)</label><select id="ledArtEnable"><option value="1" data-i18n-key="enabled">Activé</option><option value="0" data-i18n-key="disabled">Désactivé</option></select></div>
-        <div><label class="inline" data-i18n-key="led_strip_universe">Univers Art-Net (LEDs)</label><input type="number" id="ledUniv" min="0" max="255"></div>
-        <div>
-          <label class="inline" data-i18n-key="led_color_order">Ordre des couleurs (LEDs)</label>
-          <select id="ledColorOrder">
-            <option value="0" data-i18n-key="led_order_grb">GRB</option>
-            <option value="1" data-i18n-key="led_order_rgb">RGB</option>
-            <option value="2" data-i18n-key="led_order_bgr">BGR</option>
-          </select>
-        </div>
-        <small style="opacity:.7;grid-column:1/-1" data-i18n-key="net_dmx_restart_note">Changer de protocole provoque un redémarrage. Tous les réglages réseau sont sauvegardés avec le bouton "Enregistrer & Redémarrer" de la section Wi-Fi.</small>
-      </fieldset>
-      <fieldset class="grid grid2"><legend data-i18n-key="ha_integration">Home Assistant</legend>
+        <legend data-i18n-key="dmx_protocols">Sortie DMX</legend>
+        <fieldset class="grid grid2" style="margin-bottom: 20px;">
+            <legend data-i18n-key="led_strip_output">Sortie LED Strip</legend>
+            <div>
+                <label class="inline" data-i18n-key="led_color_order">Ordre des couleurs (LEDs)</label>
+                <select id="ledColorOrder">
+                  <option value="0" data-i18n-key="led_order_grb">GRB</option>
+                  <option value="1" data-i18n-key="led_order_rgb">RGB</option>
+                  <option value="2" data-i18n-key="led_order_bgr">BGR</option>
+                </select>
+            </div>
+             <small style="opacity:.7;grid-column:1/-1">Sauvegarder avec le bouton "Enregistrer & Redémarrer" de la section Wi-Fi.</small>
+        </fieldset>
+        <fieldset class="grid grid2"><legend data-i18n-key="ha_integration">Home Assistant</legend>
         <div><label class="inline" data-i18n-key="enable_ha">Activer Home Assistant</label><input type="checkbox" id="haEnabled" onchange="toggleHASettings()"></div>
         <div id="haConfigFields" style="display:none; grid-column:1/-1; margin-top:10px;" class="grid grid2">
           <div><label class="inline" data-i18n-key="ha_url">URL Home Assistant</label><input type="text" id="haUrl" placeholder="http://homeassistant.local:8123"></div>
@@ -490,16 +471,8 @@ const translations = {
     led_order_bgr: "BGR",
     display_settings: "Affichage",
     network_settings: "Réseau",
-    dmx_protocols: "Protocoles DMX",
-    net_dmx_settings: "DMX sur IP (Art-Net/sACN)",
-    protocol: "Protocole",
-    universe: "Univers",
-    priority: "Priorité",
-    node_name: "Nom du node Art-Net",
-    led_strip_output: "Sortie LED Strip (Art-Net)",
-    led_strip_universe: "Univers Art-Net (LEDs)",
-    apply_net_dmx_settings: "Appliquer les réglages",
-    net_dmx_restart_note: "Changer de protocole provoque un redémarrage automatique.",
+    dmx_protocols: "Sortie DMX",
+    led_strip_output: "Sortie LED Strip",
     wifi_network: "Réseau Wi-Fi",
     ssid: "SSID",
     password: "Mot de passe",
@@ -527,17 +500,8 @@ const translations = {
     // Select options
     enabled: "Activé",
     disabled: "Désactivé",
-    artnet: "Art-Net",
-    sacn: "sACN (E1.31)",
-    usbdmx: "USB DMX (type OpenDMX)",
-    prio_faders: "Faders",
-    prio_net: "DMX sur IP",
-    prio_htp: "Fusion HTP (max)",
     ap_no: "Non (STA si possible)",
     ap_yes: "Oui (forcer AP)",
-    espnow_off: "Désactivé",
-    espnow_master: "Maître (Émetteur)",
-    espnow_slave: "Esclave (Récepteur)",
     theme_dark: "Sombre",
     theme_light: "Clair",
     // Chaser page
@@ -581,8 +545,6 @@ const translations = {
     confirm_clear_scene: "Effacer scène {n} ?",
     dmx_channels_reset: "Canaux DMX remis à 0",
     scenes_and_dmx_reset: "Scènes et canaux DMX remis à 0",
-    artnet_settings_applied: "Paramètres DMX sur IP appliqués. Redémarrage si le protocole a changé.",
-    espnow_settings_applied: "Réglage ESP-NOW appliqué. Redémarrage...",
     ha_url_token_required: "URL et Token Home Assistant sont requis",
     ha_found_lights: "Trouvé {n} lumières Home Assistant",
     ha_connection_error: "Erreur connexion HA. ",
@@ -616,16 +578,8 @@ const translations = {
     led_order_bgr: "BGR",
     display_settings: "Display",
     network_settings: "Network",
-    dmx_protocols: "DMX Protocols",
-    net_dmx_settings: "DMX over IP (Art-Net/sACN)",
-    protocol: "Protocol",
-    universe: "Universe",
-    priority: "Priority",
-    node_name: "Art-Net Node Name",
-    led_strip_output: "LED Strip Output (Art-Net)",
-    led_strip_universe: "Art-Net Universe (LEDs)",
-    apply_net_dmx_settings: "Apply Settings",
-    net_dmx_restart_note: "Changing the protocol will cause an automatic restart.",
+    dmx_protocols: "DMX Output",
+    led_strip_output: "LED Strip Output",
     wifi_network: "Wi-Fi Network",
     ssid: "SSID",
     password: "Password",
@@ -653,17 +607,8 @@ const translations = {
     // Select options
     enabled: "Enabled",
     disabled: "Disabled",
-    artnet: "Art-Net",
-    sacn: "sACN (E1.31)",
-    usbdmx: "USB DMX (OpenDMX type)",
-    prio_faders: "Faders",
-    prio_net: "DMX over IP",
-    prio_htp: "HTP Merge (max)",
     ap_no: "No (STA if possible)",
     ap_yes: "Yes (force AP)",
-    espnow_off: "Disabled",
-    espnow_master: "Master (Transmitter)",
-    espnow_slave: "Slave (Receiver)",
     theme_dark: "Dark",
     theme_light: "Light",
     // Chaser page
@@ -707,8 +652,6 @@ const translations = {
     confirm_clear_scene: "Clear scene {n}?",
     dmx_channels_reset: "DMX channels reset to 0",
     scenes_and_dmx_reset: "Scenes and DMX channels reset to 0",
-    artnet_settings_applied: "DMX over IP settings applied. Restarting if protocol was changed.",
-    espnow_settings_applied: "ESP-NOW setting applied. Restarting...",
     ha_url_token_required: "Home Assistant URL and Token are required",
     ha_found_lights: "Found {n} Home Assistant lights",
     ha_connection_error: "HA connection error. ",
@@ -1213,37 +1156,6 @@ function updateSlotClasses(){
   }
 }
 function sanitizeName(s){ return (s||"").replace(/[|,:]/g," ").trim().slice(0,31); }
-function updateProtocolUI() {
-  const proto = document.getElementById('dmxProtocol').value;
-  // Art-Net node name is only applicable to Art-Net
-  document.getElementById('artnetNodeNameRow').style.display = (proto == 1) ? 'block' : 'none';
-}
-function applyProtocolSettings(){
-  const proto=+dmxProtocol.value|0, u=+univ.value|0, p=+prio.value|0, name=sanitizeName(document.getElementById('nodeName').value);
-  const ledEn=+document.getElementById('ledArtEnable').value|0;
-  const ledU=+document.getElementById('ledUniv').value|0;
-  const ledOrder=+document.getElementById('ledColorOrder').value|0;
-  ws && ws.readyState===1 && ws.send(`cfgx2:${proto}:${u}:${p}:${name}:${ledEn}:${ledU}:${ledOrder}`);
-  toast(t('artnet_settings_applied'));
-}
-function applyEspnowSettings(){
-  const mode = +document.getElementById('espnowMode').value|0;
-  const channel = +document.getElementById('espnowChannel').value|0;
-  const intensityOnly = document.getElementById('espnowIntensityOnly').checked ? 1 : 0;
-
-  // Send the new combined message
-  if (ws && ws.readyState === 1) {
-    ws.send(`espnow_cfg:${channel}:${intensityOnly}`);
-  }
-
-  // Also send the mode change, as it might be handled separately or require a different restart logic
-  if (ws && ws.readyState === 1) {
-    ws.send(`espnow_mode:${mode}`);
-  }
-
-  toast(t('espnow_settings_applied'));
-  setTimeout(()=>document.location.reload(), 2000);
-}
 let haSettings = { enabled: false, url: '', token: '' };
 let haLights = [];
 let faderHALinks = {};
@@ -1455,10 +1367,13 @@ function initWS(){
       const cps = (parts.length > 4) ? (parts[4]||'').split(',') : [];
 
       // --- Store all data in global variables ---
-      if(meta.length>=10){
-        blackoutActive = (meta[13] === '1');
-        if(meta.length >= 28) {
-            const xy_data = meta[27] || '';
+      if(meta.length >= 10){
+        // ip[0], ap_only[1], nodeName[2], use_static_ip[3], static_ip[4], static_subnet[5], static_gateway[6], blackoutActive[7], led_color_order[8], chaser_running[9]
+        blackoutActive = (meta[7] === '1');
+        chaserRunning = (+meta[9] === 1);
+
+        if(meta.length >= 22) { // 10 base + 3 chaser params + 8 scenes + 1 xy
+            const xy_data = meta[21] || '';
             const xy_parts = xy_data.split('&');
             xyPad.x_channels = (xy_parts[0] || '').split(',').filter(s => s.length > 0).map(item => {
                 const inverted = item.endsWith('i');
@@ -1470,9 +1385,6 @@ function initWS(){
                 const ch = parseInt(inverted ? item.slice(0, -1) : item, 10);
                 return { ch, inverted };
             });
-        }
-        if(meta.length >= 20 + 8){
-          chaserRunning = (+meta[16] === 1);
         }
       }
       for(let i=0;i<lv.length;i++) { sceneFaderLevels[i] = parseInt(lv[i], 10); }
@@ -2179,35 +2091,24 @@ window.addEventListener('load', ()=>{
         if(s) s.value=sceneFaderLevels[i]; if(v) v.textContent=sceneFaderLevels[i];
       }
       
-      if(meta.length>=10){
-        dmxProtocol.value=+meta[0];
-        univ.value=+meta[1];
-        prio.value=+meta[2];
-        curip.textContent=meta[3];
-        const aponlyEl=document.getElementById('aponly'); if(aponlyEl) aponlyEl.value=+meta[4];
-        document.getElementById('nodeName').value = meta[5] || 'ConsoleDMX';
+      if(meta.length >= 10){
+        curip.textContent=meta[0];
+        const aponlyEl=document.getElementById('aponly'); if(aponlyEl) aponlyEl.value=+meta[1];
+        // nodeName is not sent anymore, but we can leave the input field for other purposes or remove it. For now, do nothing.
         const useStaticCheck = document.getElementById('use_static_ip');
-        if (useStaticCheck) useStaticCheck.checked = (+meta[6] === 1);
-        document.getElementById('static_ip').value = meta[7] || '';
-        document.getElementById('static_subnet').value = meta[8] || '';
-        document.getElementById('static_gateway').value = meta[9] || '';
-        if (meta.length > 12) {
-            const enm = document.getElementById('espnowMode'); if(enm) enm.value = +meta[10];
-            const enc = document.getElementById('espnowChannel'); if(enc) enc.value = +meta[11];
-            const eni = document.getElementById('espnowIntensityOnly'); if(eni) eni.checked = (+meta[12] === 1);
-        }
-        if(meta.length > 16) {
-            const lae = document.getElementById('ledArtEnable'); if(lae) lae.value = +meta[14];
-            const luv = document.getElementById('ledUniv'); if(luv) luv.value = +meta[15];
-            const lco = document.getElementById('ledColorOrder'); if(lco) lco.value = +meta[16];
-        }
-        if(meta.length >= 20 + 8){
-          chaserBPM.value = meta[17];
-          chaserFade.value = meta[18];
-          chaserDuration.value = meta[19];
+        if (useStaticCheck) useStaticCheck.checked = (+meta[3] === 1);
+        document.getElementById('static_ip').value = meta[4] || '';
+        document.getElementById('static_subnet').value = meta[5] || '';
+        document.getElementById('static_gateway').value = meta[6] || '';
+        const lco = document.getElementById('ledColorOrder'); if(lco) lco.value = +meta[8];
+
+        if(meta.length >= 22){
+          chaserBPM.value = meta[10];
+          chaserFade.value = meta[11];
+          chaserDuration.value = meta[12];
           for(let i=0; i<8; i++){
             const sel = document.getElementById(`chaserS${i+1}`);
-            if (sel) sel.value = (+meta[20+i] > 12) ? -1 : +meta[20+i];
+            if (sel) sel.value = (+meta[13+i] > 12) ? -1 : +meta[13+i];
           }
         }
       }
@@ -2217,7 +2118,6 @@ window.addEventListener('load', ()=>{
       updateChaserUI();
       updateFaderXYAssignments();
       updateAllFaderBOIgnores();
-      updateProtocolUI();
       toggleStaticFields();
       setBlackoutUI(blackoutActive);
       

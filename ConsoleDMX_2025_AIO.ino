@@ -3,10 +3,7 @@
 #include <WebSocketsServer.h>
 #include <EEPROM.h>
 #include <ESPDMX.h>
-#include <ArtnetWiFi.h>
-#include <ESPAsyncE131.h>
 #include <ESP8266mDNS.h>
-#include <espnow.h>
 #include <FS.h>
 #include <LittleFS.h>
 #include <FastLED.h>
@@ -27,37 +24,24 @@ extern "C" {
 #define LED_G D7
 #define LED_B D8
 const uint32_t CONFIG_MAGIC = 0xD0F1CCEE;
-enum Priority : uint8_t { PRIO_FADERS = 0,
-                          PRIO_ARTNET = 1,
-                          PRIO_HTP = 2 };
+
 struct Config {
   uint32_t magic;
   char ssid[32];
   char pass[64];
-  uint8_t universe;
-  uint8_t priority;
   uint8_t ap_only;
   uint8_t use_static_ip;
   char static_ip[16];
   char static_subnet[16];
   char static_gateway[16];
   char nodeName[32];
-  uint8_t dmx_protocol;
-  uint8_t espnow_mode;
-  uint8_t espnow_channel;
-  uint8_t espnow_intensity_only;
-  uint8_t led_artnet_enable;
-  uint8_t led_universe;
   uint8_t led_color_order;
 };
 const int ADDR_CONFIG = 0;
 ESP8266WebServer server(80);
 WebSocketsServer webSocket(81);
 DMXESPSerial dmx;
-ArtnetWiFi artnet;
-ESPAsyncE131 sacn(1);
 uint8_t faderValues[DMX_CHANNELS];
-uint8_t artnetValues[DMX_CHANNELS];
 uint8_t sceneLevels[MAX_SCENES];
 uint8_t scenesOut[DMX_CHANNELS];
 uint8_t outValues[DMX_CHANNELS];
@@ -65,7 +49,6 @@ uint8_t sceneNonEmpty[MAX_SCENES];
 uint8_t sceneDataCache[MAX_SCENES][DMX_CHANNELS];
 bool haAssignedChannels[DMX_CHANNELS];
 CRGB leds[NUM_LEDS];
-uint8_t ledArtnetValues[DMX_CHANNELS];
 bool blackoutActive = false;
 bool ignoreBlackout[DMX_CHANNELS];
 uint8_t savedOut[DMX_CHANNELS];
@@ -103,7 +86,6 @@ String faderColors[NUM_FADERS];
 
 Config cfg;
 bool wifiAPMode = false;
-bool espNowReady = false;
 uint32_t restartAt = 0;
 uint8_t baseR = 0, baseG = 0, baseB = 0;
 uint8_t flashR = 0, flashG = 0, flashB = 0;
@@ -149,7 +131,6 @@ void startAP();
 bool fsInit();
 String scenePath(uint8_t idx);
 void setBlackout(bool enable);
-void sendEspNowBlock(const uint8_t* data, uint16_t len_total);
 void saveAssignments();
 void loadAssignments();
 void saveSceneLevels();
@@ -162,17 +143,9 @@ void setDefaults(Config& c) {
   c.magic = CONFIG_MAGIC;
   strncpy(c.ssid, "BELL685", sizeof(c.ssid) - 1);
   strncpy(c.pass, "1739EC3C", sizeof(c.pass) - 1);
-  c.universe = 0;
-  c.priority = PRIO_FADERS;
   c.ap_only = 0;
   c.use_static_ip = 0;
   strncpy(c.nodeName, "ConsoleDMX", sizeof(c.nodeName) - 1);
-  c.dmx_protocol = 1;
-  c.espnow_mode = 0;
-  c.espnow_channel = 1;
-  c.espnow_intensity_only = 0;
-  c.led_artnet_enable = 0;
-  c.led_universe = 1;
   c.led_color_order = 0; // 0=GRB, 1=RGB, 2=BGR
 }
 void loadConfig() {
@@ -269,9 +242,6 @@ void loadActiveChaser() {
             chaser_scenes[i] = (uint8_t)constrain(parts[3+i], -1, 12);
         }
     }
-  } else {
-    // No active chaser config, load preset 0 by default
-    loadChaserPreset(0, 255);
   }
 }
 
@@ -444,25 +414,6 @@ void clearSceneFS(uint8_t idx) {
   sceneNonEmpty[idx] = 0;
   memset(sceneDataCache[idx], 0, DMX_CHANNELS);
 }
-void espNowOnDataRecv(uint8_t* mac, uint8_t* incomingData, uint8_t len) {
-  const int max_data_len = 248;
-  struct __attribute__((packed)) {
-    uint16_t start_channel;
-    uint8_t data[max_data_len];
-  } packet;
-  if (len > sizeof(packet)) return;
-  memcpy(&packet, incomingData, len);
-  if (packet.start_channel < DMX_CHANNELS) {
-    uint16_t data_len = len - sizeof(packet.start_channel);
-    if (packet.start_channel + data_len <= DMX_CHANNELS) {
-      memcpy(&outValues[packet.start_channel], packet.data, data_len);
-      for (uint16_t i = 0; i < data_len; i++) {
-        dmx.write(packet.start_channel + i + 1, outValues[packet.start_channel + i]);
-      }
-      ledFlash(0, 0, 255, 50);
-    }
-  }
-}
 void chaserTask() {
   if (!chaser_running) return;
   unsigned long now = millis();
@@ -513,7 +464,6 @@ void chaserTask() {
   applyOutput();
 }
 void recomputeScenes() {
-  if (cfg.espnow_mode == 2) return;
   memset(scenesOut, 0, DMX_CHANNELS);
   for (int s = 0; s < MAX_SCENES; s++) {
     if (sceneLevels[s] == 0) continue;
@@ -526,51 +476,23 @@ void recomputeScenes() {
     }
   }
 }
-void sendEspNowBlock(const uint8_t* data, uint16_t len_total) {
-  if (!(cfg.espnow_mode == 1 && espNowReady)) return;
-  const int max_data_len = 248;
-  struct __attribute__((packed)) {
-    uint16_t start_channel;
-    uint8_t data[max_data_len];
-  } packet;
-  uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-  for (uint16_t i = 0; i < len_total; i += max_data_len) {
-    packet.start_channel = i;
-    uint16_t len_to_send = len_total - i;
-    if (len_to_send > max_data_len) len_to_send = max_data_len;
-    memcpy(packet.data, data + i, len_to_send);
-    esp_now_send(broadcastAddress, (uint8_t*)&packet, sizeof(packet.start_channel) + len_to_send);
-  }
-}
 void setBlackout(bool enable) {
   if (enable && !blackoutActive) {
     memcpy(savedOut, outValues, DMX_CHANNELS);
     blackoutActive = true;
     webSocket.broadcastTXT("ha_blackout:1");
-    if (cfg.led_artnet_enable) {
-      FastLED.clear();
-      FastLED.show();
-    }
+    FastLED.clear();
+    FastLED.show();
     ledFlash(0, 0, 255, 150);
     applyOutput();
   } else if (!enable && blackoutActive) {
     blackoutActive = false;
     webSocket.broadcastTXT("ha_blackout:0");
-    if (cfg.led_artnet_enable) {
-      for (int i = 0; i < NUM_LEDS; i++) {
-        int dmx_index = i * 3;
-        if (dmx_index + 2 < DMX_CHANNELS) {
-          leds[i].setRGB(ledArtnetValues[dmx_index], ledArtnetValues[dmx_index+1], ledArtnetValues[dmx_index+2]);
-        }
-      }
-      FastLED.show();
-    }
     ledFlash(0, 255, 0, 150);
     applyOutput();
   }
 }
 void applyOutput() {
-  if (cfg.espnow_mode == 2) return;
   if (blackoutActive) {
     uint8_t blackout_values[DMX_CHANNELS];
     memset(blackout_values, 0, DMX_CHANNELS);
@@ -600,19 +522,13 @@ void applyOutput() {
       dmx.write(i + 1, blackout_values[i]);
     }
     dmx.update();
-    sendEspNowBlock(blackout_values, DMX_CHANNELS);
     return;
   }
   if (chaser_running) {
     memcpy(outValues, chaser_out_values, DMX_CHANNELS);
   } else {
     for (int i = 0; i < DMX_CHANNELS; i++) {
-      uint8_t base = 0;
-      switch (cfg.priority) {
-        case PRIO_FADERS: base = faderValues[i]; break;
-        case PRIO_ARTNET: base = artnetValues[i]; break;
-        case PRIO_HTP: base = max(faderValues[i], artnetValues[i]); break;
-      }
+      uint8_t base = faderValues[i];
       uint8_t v = max(base, scenesOut[i]);
       if (haAssignedChannels[i]) { v = 0; }
       outValues[i] = v;
@@ -633,27 +549,6 @@ void applyOutput() {
   }
   for (int i = 0; i < DMX_CHANNELS; i++) {
     dmx.write(i + 1, outValues[i]);
-  }
-  if (cfg.espnow_mode == 1 && espNowReady) {
-    if (cfg.espnow_intensity_only == 1) {
-      uint8_t espnow_values[DMX_CHANNELS];
-      memcpy(espnow_values, outValues, DMX_CHANNELS);
-      for (uint8_t i = 0; i < num_x_channels; i++) {
-        uint16_t ch = xy_pad_x_channels[i].ch;
-        if (ch > 0 && ch <= DMX_CHANNELS) {
-          espnow_values[ch - 1] = 0;
-        }
-      }
-      for (uint8_t i = 0; i < num_y_channels; i++) {
-        uint16_t ch = xy_pad_y_channels[i].ch;
-        if (ch > 0 && ch <= DMX_CHANNELS) {
-          espnow_values[ch - 1] = 0;
-        }
-      }
-      sendEspNowBlock(espnow_values, DMX_CHANNELS);
-    } else {
-      sendEspNowBlock(outValues, DMX_CHANNELS);
-    }
   }
 }
 void zeroAllFaders() {
@@ -717,7 +612,6 @@ void handleFactoryReset() {
     LittleFS.remove("/fader_customs.json");
   }
   memset(faderValues, 0, sizeof(faderValues));
-  memset(artnetValues, 0, sizeof(artnetValues));
   memset(ignoreBlackout, 0, sizeof(ignoreBlackout));
   memset(sceneLevels, 0, sizeof(sceneLevels));
   memset(scenesOut, 0, sizeof(scenesOut));
@@ -766,12 +660,6 @@ void sendInit(uint8_t num) {
   out += "|";
   IPAddress ip = wifiAPMode ? WiFi.softAPIP() : WiFi.localIP();
   String ipStr = ip.toString();
-  out += String((int)cfg.dmx_protocol);
-  out += ",";
-  out += String(cfg.universe);
-  out += ",";
-  out += String((int)cfg.priority);
-  out += ",";
   out += ipStr;
   out += ",";
   out += String((int)cfg.ap_only);
@@ -786,17 +674,7 @@ void sendInit(uint8_t num) {
   out += ",";
   out += String(cfg.static_gateway);
   out += ",";
-  out += String((int)cfg.espnow_mode);
-  out += ",";
-  out += String(cfg.espnow_channel);
-  out += ",";
-  out += String((int)cfg.espnow_intensity_only);
-  out += ",";
   out += String((int)blackoutActive);
-  out += ",";
-  out += String((int)cfg.led_artnet_enable);
-  out += ",";
-  out += String(cfg.led_universe);
   out += ",";
   out += String((int)cfg.led_color_order);
   out += ",";
@@ -861,45 +739,6 @@ void sendInit(uint8_t num) {
   out += bo_ignore_str;
 
   webSocket.sendTXT(num, out);
-}
-void loadChaserPreset(uint8_t idx, uint8_t clientNum) {
-  if (idx >= 4) return;
-  String p = chaserPresetPath(idx);
-  if (LittleFS.exists(p)) {
-    File f = LittleFS.open(p, "r");
-    if (f) {
-      String line = f.readStringUntil('\n');
-      f.close();
-      int parts[11];
-      int partIdx = 0;
-      int currentPos = 0;
-      int nextComma = -1;
-      while(partIdx < 11 && currentPos < line.length()) {
-          nextComma = line.indexOf(',', currentPos);
-          if (nextComma == -1) nextComma = line.length();
-          parts[partIdx] = line.substring(currentPos, nextComma).toInt();
-          partIdx++;
-          currentPos = nextComma + 1;
-      }
-      if (partIdx >= 11) {
-          chaser_bpm = parts[0];
-          chaser_fade_ms = parts[1];
-          chaser_step_duration_ms = parts[2];
-          for(int i=0; i<MAX_CHASER_STEPS; i++) {
-              chaser_scenes[i] = (uint8_t)constrain(parts[3+i], -1, 12);
-          }
-          String payload = "chaser_config:" + String(idx) + ":";
-          payload += String(chaser_bpm) + "," + String(chaser_fade_ms) + "," + String(chaser_step_duration_ms);
-          for(int i=0; i<MAX_CHASER_STEPS; i++) { payload += "," + String(chaser_scenes[i]); }
-          if (clientNum == 255) {
-            webSocket.broadcastTXT(payload);
-          } else {
-            webSocket.sendTXT(clientNum, payload);
-          }
-          Serial.printf("Chaser preset %d loaded.\n", idx);
-      }
-    }
-  }
 }
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
   switch (type) {
@@ -971,13 +810,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           }
           return;
         }
-        if (msg.startsWith("chaser_load:")) {
-          int idx = msg.substring(12).toInt();
-          if (idx >= 0 && idx < 4) {
-            loadChaserPreset(idx, num);
-          }
-          return;
-        }
         if (msg.startsWith("chaser_scenes:")) {
           String scenes_str = msg.substring(14);
           int current_pos = 0;
@@ -1014,29 +846,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
               }
             }
             currentPos = nextComma + 1;
-          }
-          return;
-        }
-        if (msg.startsWith("espnow_mode:")) {
-          int mode = msg.substring(12).toInt();
-          if (mode >= 0 && mode <= 2) {
-            cfg.espnow_mode = (uint8_t)mode;
-            saveConfig();
-            restartAt = millis() + 800;
-          }
-          return;
-        }
-        if (msg.startsWith("espnow_cfg:")) {
-          int p1 = msg.indexOf(':', 11);
-          if (p1 > 0) {
-            int channel = msg.substring(11, p1).toInt();
-            int intensity_only = msg.substring(p1 + 1).toInt();
-            if (channel >= 0 && channel <= 14) {
-              cfg.espnow_channel = (uint8_t)channel;
-            }
-            cfg.espnow_intensity_only = (intensity_only != 0) ? 1 : 0;
-            saveConfig();
-            restartAt = millis() + 800;
           }
           return;
         }
@@ -1319,72 +1128,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length)
           }
           return;
         }
-        if (msg.startsWith("cfg:")) {
-          int p1 = msg.indexOf(':', 4);
-          if (p1 > 0) {
-            int univ = msg.substring(4, p1).toInt();
-            int prio = msg.substring(p1 + 1).toInt();
-            cfg.universe = (uint8_t)constrain(univ, 0, 255);
-            cfg.priority = (uint8_t)constrain(prio, 0, 2);
-            saveConfig();
-            Serial.printf("Config maj: universe=%u priority=%u\n", cfg.universe, cfg.priority);
-            if (cfg.dmx_protocol == 1) {
-              artnet.begin();
-              artnet.subscribeArtDmxUniverse((uint16_t)cfg.universe,
-                                             [&](const uint8_t* data, uint16_t size, const ArtDmxMetadata& metadata, const ArtNetRemoteInfo& remote) {
-                                               for (int i = 0; i < DMX_CHANNELS && i < size; i++) artnetValues[i] = data[i];
-                                               applyOutput();
-                                             });
-            }
-          }
-          return;
-        }
-        if (msg.startsWith("cfgx2:")) {
-          int p1 = msg.indexOf(':', 6);
-          int p2 = (p1 > 0) ? msg.indexOf(':', p1 + 1) : -1;
-          int p3 = (p2 > 0) ? msg.indexOf(':', p2 + 1) : -1;
-          int p4 = (p3 > 0) ? msg.indexOf(':', p3 + 1) : -1;
-          int p5 = (p4 > 0) ? msg.indexOf(':', p4 + 1) : -1;
-          int p6 = (p5 > 0) ? msg.indexOf(':', p5 + 1) : -1;
-          if (p1 > 0 && p2 > 0 && p3 > 0) {
-            uint8_t prevProto = cfg.dmx_protocol;
-            bool prevLedEn = cfg.led_artnet_enable;
-            uint8_t prevLedUniv = cfg.led_universe;
-            uint8_t prevLedColorOrder = cfg.led_color_order;
-            int proto = msg.substring(6, p1).toInt();
-            int unv = msg.substring(p1 + 1, p2).toInt();
-            int pr = msg.substring(p2 + 1, p3).toInt();
-            String nm = (p4 > 0) ? msg.substring(p3 + 1, p4) : msg.substring(p3 + 1);
-            nm.trim();
-            nm.replace("|", " ");
-            nm.replace(",", " ");
-            nm.replace(":", " ");
-            cfg.dmx_protocol = (uint8_t)constrain(proto, 0, 3);
-            cfg.universe = (uint8_t)constrain(unv, 0, 255);
-            cfg.priority = (uint8_t)constrain(pr, 0, 2);
-            strncpy(cfg.nodeName, nm.c_str(), sizeof(cfg.nodeName) - 1);
-            cfg.nodeName[sizeof(cfg.nodeName) - 1] = 0;
-            if (p4 > 0 && p5 > 0) {
-              int ledEn = msg.substring(p4 + 1, p5).toInt();
-              int ledUnv = (p6 > 0) ? msg.substring(p5 + 1, p6).toInt() : msg.substring(p5 + 1).toInt();
-              cfg.led_artnet_enable = (uint8_t)constrain(ledEn, 0, 1);
-              cfg.led_universe = (uint8_t)constrain(ledUnv, 0, 255);
-              if (p6 > 0) {
-                int ledOrder = msg.substring(p6 + 1).toInt();
-                cfg.led_color_order = (uint8_t)constrain(ledOrder, 0, 2);
-              }
-            }
-            saveConfig();
-            bool needsRestart = (prevProto != cfg.dmx_protocol) ||
-                                (cfg.dmx_protocol > 0 && (prevLedEn != cfg.led_artnet_enable || prevLedUniv != cfg.led_universe || prevLedColorOrder != cfg.led_color_order));
-            if (needsRestart) {
-              restartAt = millis() + 800;
-            } else {
-            }
-            sendInit(num);
-          }
-          return;
-        }
       }
       break;
     default: break;
@@ -1440,7 +1183,7 @@ void startAP() {
 void setup() {
   Serial.begin(115200);
   delay(50);
-  Serial.println("\nBoot DMX Web + Art-Net (hideakitai) + 12 Scenes + RGB LED + ON/OFF Art-Net + LittleFS + BLACKOUT");
+  Serial.println("\nBoot DMX Web + 12 Scenes + RGB LED + LittleFS + BLACKOUT");
   ledInit();
   FastLED.setBrightness(255);
   ledSetBase(255, 0, 255);
@@ -1461,14 +1204,12 @@ void setup() {
   }
   dmx.init(DMX_CHANNELS);
   memset(faderValues, 0, sizeof(faderValues));
-  memset(artnetValues, 0, sizeof(artnetValues));
   loadSceneLevels();
   memset(scenesOut, 0, sizeof(scenesOut));
   memset(outValues, 0, sizeof(outValues));
   memset(sceneNonEmpty, 0, sizeof(sceneNonEmpty));
   memset(savedOut, 0, sizeof(savedOut));
   memset(haAssignedChannels, 0, sizeof(haAssignedChannels));
-  memset(ledArtnetValues, 0, sizeof(ledArtnetValues));
   memset(chaser_out_values, 0, sizeof(chaser_out_values));
   memset(fade_from_values, 0, sizeof(fade_from_values));
   memset(fade_to_values, 0, sizeof(fade_to_values));
@@ -1504,113 +1245,20 @@ void setup() {
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
   Serial.println("WebSocket :81");
-  switch (cfg.dmx_protocol) {
-    case 1:
-      artnet.begin();
-      artnet.setArtPollReplyConfigShortName(String(cfg.nodeName));
-      artnet.setArtPollReplyConfigLongName(String(cfg.nodeName));
-      artnet.subscribeArtDmxUniverse((uint16_t)cfg.universe,
-                                     [&](const uint8_t* data, uint16_t size, const ArtDmxMetadata& metadata, const ArtNetRemoteInfo& remote) {
-                                       if (blackoutActive) return;
-                                       for (int i = 0; i < DMX_CHANNELS && i < size; i++) {
-                                         if (data[i] != artnetValues[i] && haAssignedChannels[i]) {
-                                           String msg = "ha_val:" + String(i + 1) + ":" + String(data[i]);
-                                           webSocket.broadcastTXT(msg);
-                                         }
-                                         artnetValues[i] = data[i];
-                                       }
-                                       applyOutput();
-                                       ledFlash(0, 255, 255, 120);
-                                     });
-      if (cfg.led_artnet_enable) {
-        artnet.subscribeArtDmxUniverse((uint16_t)cfg.led_universe,
-          [&](const uint8_t* data, uint16_t size, const ArtDmxMetadata& metadata, const ArtNetRemoteInfo& remote) {
-            if (blackoutActive) return;
-            for (int i = 0; i < DMX_CHANNELS && i < size; i++) ledArtnetValues[i] = data[i];
-            for (int i = 0; i < NUM_LEDS; i++) {
-              int dmx_index = i * 3;
-              if (dmx_index + 2 < size && dmx_index + 2 < DMX_CHANNELS) {
-                leds[i].setRGB(ledArtnetValues[dmx_index], ledArtnetValues[dmx_index + 1], ledArtnetValues[dmx_index + 2]);
-              }
-            }
-            FastLED.show();
-            ledFlash(255, 0, 255, 40);
-          });
-        Serial.printf("Art-Net: Subscribed to LED universe %u\n", cfg.led_universe);
-      }
-      Serial.println("Protocole: Art-Net activé.");
-      break;
-    case 2:
-      if (sacn.begin(E131_MULTICAST, cfg.universe)) {
-        Serial.printf("Protocole: sACN E1.31 activé, univers %u\n", cfg.universe);
-      } else {
-        Serial.println("Erreur: Impossible de démarrer sACN.");
-      }
-      break;
-    default:
-      Serial.println("Protocole: DMX réseau désactivé.");
-      break;
-  }
 
-  if (cfg.espnow_mode > 0) {
-    if (cfg.espnow_channel > 0 && cfg.espnow_channel <= 14) {
-      Serial.printf("ESP-NOW: Setting channel to %d\n", cfg.espnow_channel);
-      wifi_set_channel(cfg.espnow_channel);
-    }
-  }
-  if (cfg.espnow_mode == 1) {
-    Serial.println("ESP-NOW: Init Master...");
-    if (esp_now_init() == 0) {
-      esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
-      uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-      esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 0, 0, 0);
-      Serial.println("ESP-NOW: Master Ready. Broadcast peer added.");
-      espNowReady = true;
-    } else {
-      Serial.println("ESP-NOW: Init Master Failed.");
-    }
-  } else if (cfg.espnow_mode == 2) {
-    Serial.println("ESP-NOW: Init Slave...");
-    if (esp_now_init() == 0) {
-      esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
-      esp_now_register_recv_cb(espNowOnDataRecv);
-      Serial.println("ESP-NOW: Slave Ready.");
-      espNowReady = true;
-    } else {
-      Serial.println("ESP-NOW: Init Slave Failed.");
-    }
-  }
+  Serial.println("Protocole: DMX réseau désactivé.");
+
   Serial.println("Prêt.");
 }
 void loop() {
   server.handleClient();
   webSocket.loop();
-  if (cfg.dmx_protocol == 1) {
-    artnet.parse();
-  } else if (cfg.dmx_protocol == 2) {
-    while (!sacn.isEmpty()) {
-      e131_packet_t packet;
-      sacn.pull(&packet);
-      if (!blackoutActive) {
-        for (int i = 0; i < DMX_CHANNELS && i < packet.property_value_count - 1; i++) {
-          uint8_t val = packet.property_values[i + 1];
-          if (val != artnetValues[i] && haAssignedChannels[i]) {
-            String msg = "ha_val:" + String(i + 1) + ":" + String(val);
-            webSocket.broadcastTXT(msg);
-          }
-          artnetValues[i] = val;
-        }
-        applyOutput();
-        ledFlash(0, 255, 255, 120);
-      }
-    }
-  }
   chaserTask();
   MDNS.update();
   dmx.update();
   ledTask();
   if (restartAt && millis() > restartAt) {
-    Serial.println("Redémarrage demandé (ON/OFF Art-Net)...");
+    Serial.println("Redémarrage demandé...");
     delay(100);
     ESP.restart();
   }
